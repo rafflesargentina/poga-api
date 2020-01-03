@@ -2,7 +2,7 @@
 
 namespace Raffles\Modules\Poga\UseCases;
 
-use Raffles\Modules\Poga\Models\{ Direccion, Inmueble, User };
+use Raffles\Modules\Poga\Models\{ Direccion, Inmueble, InmueblePadre, User };
 use Raffles\Modules\Poga\Repositories\{ DireccionRepository, InmuebleRepository, InmueblePadreRepository, PersonaRepository };
 use Raffles\Modules\Poga\Notifications\InmuebleCreado;
 
@@ -51,9 +51,9 @@ class CrearInmueble
         $this->adjuntarCaracteristicas($inmueble);
         $this->adjuntarFormatos($inmueble);
 
-        $inmueblePadre = $this->crearInmueblePadre($rInmueblePadre, $direccion, $inmueble);
+        $inmueblePadre = $this->crearOAsociarInmueblePadre($rInmueblePadre, $direccion, $inmueble);
 
-        $this->agregarUnidades($inmueblePadre);
+        $this->crearUnidades($inmueblePadre);
 
         $this->nominarOAsignarAdministrador($rPersona, $inmueble);
         $this->nominarOAsignarPropietario($rPersona, $inmueble);
@@ -70,11 +70,14 @@ class CrearInmueble
      *
      * @return void
      */
-    protected function adjuntarCaracteristicas($inmueble)
+    protected function adjuntarCaracteristicas(Inmueble $inmueble)
     {
-        $caracteristicasTipoInmueble = $this->data['caracteristicas'];
-        foreach ($caracteristicasTipoInmueble as $caracteristicaTipoInmueble) {
-            $inmueble->caracteristicas()->attach($caracteristicaTipoInmueble['id_caracteristica']['id'], ['cantidad' => $caracteristicaTipoInmueble['id_caracteristica']['cantidad'], 'enum_estado' => 'ACTIVO', 'id_caracteristica_tipo_inmueble' => $caracteristicaTipoInmueble['id']]);
+        $data = $this->data;
+
+        if (isset($data['caracteristicas'])) {
+            foreach ($data['caracteristicas'] as $caracteristicaTipoInmueble) {
+                $inmueble->caracteristicas()->attach($caracteristicaTipoInmueble['id_caracteristica']['id'], ['cantidad' => $caracteristicaTipoInmueble['id_caracteristica']['cantidad'], 'enum_estado' => 'ACTIVO', 'id_caracteristica_tipo_inmueble' => $caracteristicaTipoInmueble['id']]);
+            }
         }
     }
 
@@ -85,24 +88,25 @@ class CrearInmueble
      *
      * @return void
      */
-    protected function adjuntarFormatos($inmueble)
+    protected function adjuntarFormatos(Inmueble $inmueble)
     {
         $formatos = $this->data['formatos'];
         $inmueble->formatos()->attach($formatos);
     }
 
     /**
-     * Agregar unidades.
+     * Crear Unidades.
      *
      * @param InmueblePadre $inmueblePadre The InmueblePadre model.
      *
      * @return void
      */
-    protected function agregarUnidades($inmueblePadre)
+    protected function crearUnidades(InmueblePadre $inmueblePadre)
     {
-        if (isset($this->data['unidades'])) {
-            $unidades = $this->data['unidades'];
-            foreach ($unidades as $unidad) {
+        $data = $this->data;
+
+        if (isset($data['unidades'])) {
+            foreach ($data['unidades'] as $unidad) {
                  $this->dispatchNow(new CrearUnidad(array_merge($unidad, ['id_inmueble_padre' => $inmueblePadre->id, 'id_medida' => '1']), $this->user));
             }
         }
@@ -141,7 +145,7 @@ class CrearInmueble
     }
 
     /**
-     * Crear InmueblePadre.
+     * Crear o Asociar InmueblePadre.
      *
      * @param InmueblePadreRepository $repository The InmueblePadreRepository object.
      * @param Direccion               $direccion  The Direccion model.
@@ -149,22 +153,26 @@ class CrearInmueble
      *
      * @return InmueblePadre
      */
-    protected function crearInmueblePadre(InmueblePadreRepository $repository, Direccion $direccion, Inmueble $inmueble)
+    protected function crearOAsociarInmueblePadre(InmueblePadreRepository $repository, Direccion $direccion, Inmueble $inmueble)
     {
         $data = $this->data;
 
-        $inmueblePadre = $repository->create(
-            [
-            'cant_pisos' => $data['cant_pisos'],
-            'comision_administrador' => $data['comision_administrador'],
-            'divisible_en_unidades' => $data['divisible_en_unidades'],
-            'id_direccion' => $direccion->id,
+        if (!isset($data['id_inmueble_padre'])) {
+            $inmueblePadre = $repository->create(
+                [
+                'cant_pisos' => $data['cant_pisos'],
+                'comision_administrador' => $data['comision_administrador'],
+                'divisible_en_unidades' => $data['divisible_en_unidades'],
+                'id_direccion' => $direccion->id,
                 'id_inmueble' => $inmueble->id,
-            'modalidad_propiedad' => $data['modalidad_propiedad'],
-            'nombre' => $data['nombre'],
-            ]
-        )[1];
-
+                'modalidad_propiedad' => $data['modalidad_propiedad'],
+                'nombre' => $data['nombre'],
+                ]
+            )[1];
+        } else {
+            $inmueblePadre = $repository->findOrFail($data['id_inmueble_padre']);
+        }
+    
         $inmueble->id_tabla_hija = $inmueblePadre->id;
         $inmueble->save();
 
@@ -181,15 +189,16 @@ class CrearInmueble
      */
     protected function nominarOAsignarAdministrador(PersonaRepository $repository, Inmueble $inmueble)
     {
-        // idAdministradorReferente presente en el array?
-        if (isset($this->data['id_administrador_referente'])) {
-            $user = $this->user;
+        $data = $this->data;
+        $user = $this->user;
 
-            $id = $this->data['id_administrador_referente'];
+        // id_administrador_referente presente en el array?
+        if (isset($data['id_administrador_referente'])) {
+            $id = $data['id_administrador_referente'];
 
-            // idAdministradorReferente no está vacío?
+            // id_administrador_referente no está vacío?
             if ($id) {
-                // idAdministradorReferente es distinto al id de la persona del usuario?
+                // id_administrador_referente es distinto al id de la persona del usuario?
                 if ($id != $user->id_persona) {
                     $persona = $repository->findOrFail($id);
 
@@ -217,15 +226,16 @@ class CrearInmueble
      */
     protected function nominarOAsignarPropietario(PersonaRepository $repository, Inmueble $inmueble)
     {
-        // idPropietarioReferente no está presente en el array?
-        if (isset($this->data['id_propietario_referente'])) {
-            $user = $this->user;
+        $data = $this->data;
+        $user = $this->user;
 
-            $id = $this->data['id_propietario_referente'];
+        // id_propietario_referente no está presente en el array?
+        if (isset($data['id_propietario_referente'])) {
+            $id = $data['id_propietario_referente'];
 
-            // idPropietarioReferente no está vacío?
+            // id_propietario_referente no está vacío?
             if ($id) {
-                // idPropietarioReferente es distinto al id de la persona del usuario?
+                // id_propietario_referente es distinto al id de la persona del usuario?
                 if ($id != $user->id_persona) {
                     $persona = $repository->findOrFail($id);
 
