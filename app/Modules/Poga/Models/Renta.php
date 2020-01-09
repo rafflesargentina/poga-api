@@ -20,14 +20,14 @@ class Renta extends Model
      * @var array
      */
     protected $appends = [
-    'moneda',    
-    'nombre_y_apellidos_inquilino_referente',
+        'moneda',    
+        'nombre_y_apellidos_inquilino_referente',
         'persona_id_inquilino_referente',
     ];
 
     protected $casts = [
-    'fecha_fin' => 'date',
-    'fecha_inicio' => 'date',
+        'fecha_fin' => 'date',
+        'fecha_inicio' => 'date',
         'multa' => 'boolean',
     ];
 
@@ -62,8 +62,9 @@ class Renta extends Model
     protected $fillable = [
         'comision_administrador',
         'comision_inmobiliaria',
-    'dia_mes_pago',
-    'dias_multa',
+        'dia_mes_pago',
+        'dias_multa',
+        'dias_notificacion_previa_renovacion',
         'enum_estado',
         'expensas',
         'fecha_fin',
@@ -73,13 +74,16 @@ class Renta extends Model
         'id_inmueble',
         'id_inquilino',
         'id_moneda',
+        'id_renta_padre',
         'monto',
         'monto_descontado_garantia_finalizacion_contrato',
         'monto_multa_dia',
-    'multa',
-    'observacion',
-    'prim_comision_administrador',
-    'vigente',
+        'motivo_descuento_garantia',
+        'multa',
+        'observacion',
+        'prim_comision_administrador',
+        'renovacion',
+        'vigente',
     ];
 
     /**
@@ -143,6 +147,14 @@ class Renta extends Model
     public function idMoneda()
     {
         return $this->belongsTo(Moneda::class, 'id_moneda');
+    }
+
+    /**
+     * Get the renta padre that owns the renta.
+     */
+    public function idRentaPadre()
+    {
+        return $this->belongsTo(Renta::class, 'id_renta_padre');
     }
 
     /**

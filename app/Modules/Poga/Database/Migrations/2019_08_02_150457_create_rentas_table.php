@@ -11,7 +11,8 @@ class CreateRentasTable extends Migration
     {
         Schema::create(
             'rentas', function (Blueprint $table) {
-                $table->increments('id');            
+                $table->increments('id');
+                $table->unsignedInteger('id_renta_padre')->nullable();
                 $table->unsignedInteger('id_inmueble');
                 $table->foreign('id_inmueble')->references('id')->on('inmuebles');
                 $table->unsignedInteger('monto');         
@@ -25,15 +26,18 @@ class CreateRentasTable extends Migration
                 $table->boolean('vigente')->nullable()->default(0);
                 $table->tinyInteger('dias_multa')->nullable()->default(0);
                 $table->unsignedInteger('monto_multa_dia')->nullable()->default(0);
-                $table->enum('enum_estado', ['ACTIVO','INACTIVO','PENDIENTE','FINALIZADO']);
+                $table->tinyInteger('dias_notificacion_previa_renovacion')->nullable()->default(60);
+                $table->enum('enum_estado', ['ACTIVO','INACTIVO','PENDIENTE','FINALIZADO','PENDIENTE_FINALIZACION']);
                 $table->unsignedInteger('id_moneda');
                 $table->foreign('id_moneda')->references('id')->on('monedas');
                 $table->unsignedInteger('id_inquilino');
                 $table->foreign('id_inquilino')->references('id')->on('personas');
                 $table->unsignedInteger('garantia')->nullable()->default(0);
+                $table->string('motivo_descuento_garantia')->nullable();
                 $table->unsignedInteger('dia_mes_pago');
                 $table->date('fecha_finalizacion_contrato')->nullable();            
                 $table->unsignedInteger('monto_descontado_garantia_finalizacion_contrato')->nullable();
+                $table->enum('renovacion', ['AUTOMATICA','MANUAL','NO_RENOVAR'])->nullable()->default('AUTOMATICA');
                 $table->timestamps();
             
             }
