@@ -17,7 +17,7 @@ class RegisterController extends Controller
     /**
      * Handle a registration request for the application.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param  \Illuminate\Http\Request $request
      *
      * @return \Illuminate\Http\Response
      */
@@ -45,7 +45,7 @@ class RegisterController extends Controller
         return Validator::make(
             $data, [
             'accepted' => 'required|accepted',        
-            'ciudades_cobertura' => 'required_if:role_id,1|array|min:1',
+            //'ciudades_cobertura' => 'required_if:role_id,1|array|min:1',
             'email' => 'required|email|unique:users,email',
             'id_persona.enum_tipo_persona' => 'sometimes|required',
             'id_persona.apellido' => 'required_if:id_persona.enum_tipo_persona,FISICA',
@@ -54,7 +54,7 @@ class RegisterController extends Controller
             //'id_persona.id_pais_cobertura' => 'sometimes|required_if:role_id,1',
             'id_persona.nombre' => 'required',
             //'id_persona.ci' => 'sometimes|required',
-            'password' => 'required|confirmed',
+            'password' => 'required|confirmed|min:6',
             //'plan' => 'sometimes|required_if:role_id,1',
             'role_id' => 'required',
             ]
@@ -65,6 +65,7 @@ class RegisterController extends Controller
      * Create a new user instance after a valid registration.
      *
      * @param  array $data
+     *
      * @return User
      */
     protected function create(array $data)
@@ -82,11 +83,11 @@ class RegisterController extends Controller
             ]
         );
 
-        if (isset($data['ciudades_cobertura'])) {
-            foreach ($data['ciudades_cobertura'] as $ciudadId) {
-                $persona->ciudades_cobertura()->create(['enum_estado' => 'ACTIVO', 'id_ciudad' => $ciudadId, 'role_id' => $data['role_id']]);
-            }
-        }
+        //if (isset($data['ciudades_cobertura'])) {
+            //foreach ($data['ciudades_cobertura'] as $ciudadId) {
+                //$persona->ciudades_cobertura()->create(['enum_estado' => 'ACTIVO', 'id_ciudad' => $ciudadId, 'role_id' => $data['role_id']]);
+            //}
+        //}
 
         $role = $data['role_id'];
         $user->roles()->attach($role);
