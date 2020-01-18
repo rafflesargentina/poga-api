@@ -13,10 +13,11 @@ class PogaDatabaseSeeder extends Seeder
      */
     public function run()
     {
+        $this->call(BancosTableSeeder::class);
         $this->call(PaisesTableSeeder::class);
         $this->call(CiudadesTableSeeder::class);
-	$this->call(DepartamentosTableSeeder::class);
-	$this->call(EstadosInmuebleTableSeeder::class);
+        $this->call(DepartamentosTableSeeder::class);
+        $this->call(EstadosInmuebleTableSeeder::class);
         $this->call(FormatosTableSeeder::class);
         $this->call(GruposCaracteristicaTableSeeder::class);
         $this->call(MedidasTableSeeder::class);
@@ -28,10 +29,6 @@ class PogaDatabaseSeeder extends Seeder
         $this->call(CaracteristicasTableSeeder::class);
         $this->call(TiposInmuebleTableSeeder::class);
         $this->call(CaracteristicaTipoInmuebleTableSeeder::class);
-        //$this->call(UsersTableSeeder::class);
-
-        //if (env('APP_ENV')) {
-            //$this->call(InmueblesFakerTableSeeder::class);
-        //}
+        $this->call(UsersTableSeeder::class);
     }
 }

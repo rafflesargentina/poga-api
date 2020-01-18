@@ -17,8 +17,8 @@ class GruposCaracteristicaTableSeeder extends Seeder
     {
         $grupos = [
             ['nombre' => 'Electrodomésticos', 'enum_estado' => 'ACTIVO'],
-        ['nombre' => 'Amoblado', 'enum_estado' => 'ACTIVO'],
-        ['nombre' => 'Generales', 'enum_estado' => 'ACTIVO']
+            ['nombre' => 'Amoblado', 'enum_estado' => 'ACTIVO'],
+            ['nombre' => 'Generales', 'enum_estado' => 'ACTIVO']
         ];
 
         foreach ($grupos as $grupo) {
