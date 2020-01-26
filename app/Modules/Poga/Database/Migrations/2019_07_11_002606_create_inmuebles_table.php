@@ -19,6 +19,10 @@ class CreateInmueblesTable extends Migration
                 $table->text('descripcion')->nullable();
                 $table->unsignedInteger('id_tipo_inmueble');
                 $table->foreign('id_tipo_inmueble')->references('id')->on('tipos_inmueble');
+                $table->unsignedInteger('area')->nullable()->default(0);
+                $table->unsignedInteger('area_estacionamiento')->nullable()->default(0);
+                $table->unsignedInteger('id_medida')->nullable();
+                $table->foreign('id_medida')->references('id')->on('medidas');
                 $table->boolean('solicitud_directa_inquilinos')->default(false);
                 $table->enum('enum_estado', ['ACTIVO','INACTIVO']);
                 $table->enum('enum_tabla_hija', ['INMUEBLES_PADRE','UNIDADES']);

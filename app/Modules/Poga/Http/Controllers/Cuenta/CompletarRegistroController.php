@@ -2,15 +2,15 @@
 
 namespace Raffles\Modules\Poga\Http\Controllers\Cuenta;
 
-use Raffles\Http\Controllers\Controller;
 use Raffles\Modules\Poga\Http\Requests\CuentaRequest;
+use Raffles\Modules\Poga\Mail\RegistroCompletadoParaAdminPoga;
+use Raffles\Modules\Poga\Notifications\RegistroCompletado;
 
+use Illuminate\Support\Facades\Mail;
 use RafflesArgentina\ResourceController\Traits\FormatsValidJsonResponses;
 
-class ActualizarCuentaController extends Controller
+class CompletarRegistroController extends ActualizarCuentaController
 {
-    use FormatsValidJsonResponses;
-
     /**
      * Handle the incoming request.
      *
@@ -20,9 +20,12 @@ class ActualizarCuentaController extends Controller
      */
     public function __invoke(CuentaRequest $request)
     {
+        parent::__invoke($request);
+
         $user = $request->user('api');
-        $user->update(array_except($request->all(), ['id_persona']));
-        $user->idPersona()->update($request->id_persona);
+
+        $user->notify(new RegistroCompletado($user));
+        Mail::to(env('MAIL_ADMIN_ADDRESS'))->send(new RegistroCompletadoParaAdminPoga($user));
 
         return $this->validSuccessJsonResponse('Success', $user);
     }

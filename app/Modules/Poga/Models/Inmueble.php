@@ -42,10 +42,13 @@ class Inmueble extends Model
      * @var array
      */
     protected $fillable = [
-    'descripcion',
+        'area',
+        'area_estacionamiento',
+        'descripcion',
         'enum_estado',
         'enum_tabla_hija',
         'id_tabla_hija',
+        'id_medida',
         'id_tipo_inmueble',
         'id_usuario_creador',
         'solicitud_directa_inquilinos',
@@ -58,7 +61,7 @@ class Inmueble extends Model
      */
     protected $table = 'inmuebles';
 
-    protected $with = ['idInmueblePadre', 'idTipoInmueble'];
+    protected $with = ['featured_photo', 'idInmueblePadre', 'idMedida', 'idTipoInmueble', 'unfeatured_photos'];
 
     /**
      * Get the administradores for the inmueble.
@@ -158,6 +161,14 @@ class Inmueble extends Model
     }
 
     /**
+     * Get the medida that owns the inmueble.
+     */
+    public function idMedida()
+    {
+        return $this->belongsTo(Medida::class, 'id_medida');
+    }
+
+    /**
      * Get the propietario referente record associated with the inmueble.
      */
     public function idPropietarioReferente()
@@ -187,14 +198,6 @@ class Inmueble extends Model
     }
 
     /**
-     * Get the imagenes inmueble for the inmueble.
-     */
-    public function imagenes_inmueble()
-    {
-        return $this->hasMany(ImagenInmueble::class, 'id_inmueble');
-    }
-
-    /**
      * Get the inquilinos for the inmueble.
      */
     public function inquilinos()
@@ -215,7 +218,7 @@ class Inmueble extends Model
      */
     public function personas()
     {
-        return $this->belongsToMany(Persona::class, 'inmueble_persona', 'id_inmueble', 'id_persona')
+        return $this->belongsToMany(Persona::class, 'inmueble_persona', 'id_inmueble', 'id_medida', 'id_persona')
             ->withPivot(['dia_cobro_mensual','enum_estado','enum_rol','fecha_fin_contrato','fecha_inicio_contrato','id_moneda_salario','referente','salario']);
     }
 
