@@ -74,7 +74,15 @@ class Unidad extends Model
      */
     protected $table = 'unidades';
 
-    protected $with = ['idInmueble'];
+    protected $with = ['idInmueble', 'idFormatoInmueble', 'idMedida'];
+
+    /**
+     * Get the formato inmueble that owns the unidad.
+     */
+    public function idFormatoInmueble()
+    {
+        return $this->belongsTo(FormatoInmueble::class, 'id_formato_inmueble');
+    }
 
     /**
      * Get the inmueble that owns the unidad.

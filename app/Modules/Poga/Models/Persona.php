@@ -60,10 +60,11 @@ class Persona extends Model
         'mail_solicitudes',
         'nombre',
         'razon_social',
-    'ruc',
-    'ruc_facturacion',
-    'telefono',
-    'titular_cuenta',
+        'ruc',
+        'ruc_facturacion',
+	'telefono',
+	'telefono_celular',
+        'titular_cuenta',
     ];
 
     /**

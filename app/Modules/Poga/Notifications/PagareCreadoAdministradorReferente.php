@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class PagareCreadoAdministradorReferente extends Notification
+class PagareCreadoAdministradorReferente extends Notification implements ShouldQueue
 {
     use Queueable;
 

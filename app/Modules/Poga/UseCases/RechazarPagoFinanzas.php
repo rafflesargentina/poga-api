@@ -61,7 +61,7 @@ class RechazarPagoFinanzas
 
         // Solo el administrador puede rechazar un pago.
         if ($this->user->id == $administrador->id) {
-            $this->actualizarEstadoPago("PENDIENTE");
+            $this->dispatchNow(new ActualizarEstadoPagare($pagare, "PENDIENTE"));
     
             $administrador->notify(new EstadoPagareActualizado($pagare));
 
@@ -78,10 +78,4 @@ class RechazarPagoFinanzas
 
         return $this->pagare;
     }   
-
-    protected function actualizarEstadoPago($estado)
-    {
-        $this->pagare->enum_estado = $estado;
-        $this->pagare->save();
-    }
 }

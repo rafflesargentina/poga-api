@@ -58,7 +58,10 @@ class CrearInmueble
         $this->nominarOAsignarAdministrador($rPersona, $inmueble);
         $this->nominarOAsignarPropietario($rPersona, $inmueble);
 
-        $this->user->notify(new InmuebleCreado($inmueble, $this->user));
+	// Notifica solo si es casa.
+	if ($inmueble->id_tipo_inmueble == 2) {
+	    $this->user->notify(new InmuebleCreado($inmueble));
+	}
 
         return $inmueblePadre;
     }
@@ -171,10 +174,11 @@ class CrearInmueble
             )[1];
         } else {
             $inmueblePadre = $repository->findOrFail($data['id_inmueble_padre']);
-        }
+	    $inmueblePadre = $this->dispatchNow(new ActualizarInmueble($inmueblePadre, $data, $this->user));
+	}
     
         $inmueble->id_tabla_hija = $inmueblePadre->id;
-        $inmueble->save();
+	$inmueble->save();
 
         return $inmueblePadre;
     }

@@ -64,7 +64,6 @@ class InmuebleRequest extends FormRequest
             ),
             'formatos' => 'required|array|min:1',
             'idDireccion.calle_principal' => 'required',
-            'idDireccion.numeracion' => 'required',
             'idInmueble.solicitud_directa_inquilinos' => 'required',
             'idInmueblePadre.cant_pisos' => 'required|numeric',
             'idInmueblePadre.comision_administrador' => Rule::requiredIf(

@@ -3,12 +3,9 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use GuzzleHttp\Client;
-use Illuminate\Http\Request;
-use Illuminate\Foundation\Bus\DispatchesJobs;
 
 class ActualizarBoletaPago
 {
-
     /**
      * The Client.
      *
@@ -44,13 +41,21 @@ class ActualizarBoletaPago
     }
 
     /**
+     * Execute the job.
      *
+     * @return void
      */
     public function handle()
     {
+        if (\App::environment('local')) {
+            $url = env('DEBTS_TESTING_URL').'/debts/'.$this->id;
+        } else {
+            $url = env('DEBTS_URL').'/debts/'.$this->id;
+	}
+
         $response = $this->client->put(
-            'http://poga.base97.com/api/v1/debts/'.$this->id, [
-            'properties' => $this->data
+            $url, [
+            'json' => $this->data
             ]
         );
     

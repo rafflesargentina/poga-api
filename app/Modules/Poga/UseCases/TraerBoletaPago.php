@@ -3,12 +3,9 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use GuzzleHttp\Client;
-use Illuminate\Http\Request;
-use Illuminate\Foundation\Bus\DispatchesJobs;
 
 class TraerBoletaPago
 {
-
     /**
      * The Client.
      *
@@ -17,39 +14,55 @@ class TraerBoletaPago
     protected $client;
 
     /**
-     * The id.
+     * El id de la boleta.
      *
-     * @var int
+     * @var array
      */
     protected $id;
 
     /**
-     * Create a new DebtController instance.
+     * Create a new job instance.
+     *
+     * @param  int  $id El id de la boleta.
      *
      * @return void
-     */    
+     */
     public function __construct($id)
     {
         $this->client = new Client(
             [
-                'base_uri' => 'http://poga.base97.com/api/v1/',
             'headers' => [
-            'apiKey' => env('DEBTS_API_KEY'),
-                    'Content-Type' => 'application/json'
-                ]
+                'apiKey' => env('DEBTS_API_KEY'),
+                'Content-Type' => 'application/json'
+            ]
             ]
         );
-    
+
         $this->id = $id;
     }
 
     /**
+     * Execute the job.
      *
+     * @return void
      */
     public function handle()
     {
-        $res = $this->client->get('debts/'.$this->id);
+        if (\App::environment('local')) {
+            $url = env('DEBTS_TESTING_URL').'/debts/'.$this->id;
+        } else {
+            $url = env('DEBTS_URL').'/debts/'.$this->id;
+        }
 
-        return json_decode($res->getBody(), true);
+	try {
+	    $response = $this->client->get($url);
+	} catch (\GuzzleHttp\Exception\ClientException $e) {
+	    switch ($e->getCode()) {
+                case 404:
+	            abort(404);
+            }
+	}
+
+        return json_decode($response->getBody(), true, JSON_PRETTY_PRINT);
     }
 }

@@ -40,13 +40,14 @@ class GenerarPagareRenta
     public function handle(PagareRepository $repository)
     {
         $now = Carbon::now();
-        $renta = $this->renta;
+	$renta = $this->renta;
         $startOfMonth = $now->copy()->startOfMonth();
 
         $fechaInicio = $renta->fecha_inicio;
         $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicio->day, 0, 0, 0);
-        $fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
+	$fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
 
+        $inquilino = $renta->idInquilino;
         $inmueble = $renta->idInmueble;
 
         $pagare = $repository->create(
@@ -64,21 +65,27 @@ class GenerarPagareRenta
             ]
         )[1];
 
+	$targetLabel = $inquilino->nombre_y_apellidos;
+	$targetType = $inquilino->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
+	$targetNumber = $inquilino->enum_tipo_persona === 'FISICA' ? $inquilino->ci : $inquilino->ruc;
+	$label = 'Pago de renta para el inquilino ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+	$summary = $label;
+
         $datosBoleta = [
             'amount' => [
                 'currency' => 'PYG',
-                'value' => $monto,
+                'value' => $renta->monto,
             ],
             'description' => [
-                'summary' => 'Pago de renta mes',
-                'text' => 'Pago de renta',
+                'summary' => $summary,
+                'text' => $summary,
             ],
             'docId' => $renta->id,
-            'label' => 'Pago de renta',
+            'label' => $label,
             'target' => [
-                'label' => $inquilino->nombre.' '.$inquilino->apellido,
-                'number' => $inquilino->ruc ? $inquilino->ruc : $inquilino->ci,
-                'type' => $inquilino->ruc ? 'ruc' : 'cip',
+                'label' => $targetLabel,
+                'number' => $targetNumber,
+                'type' => $targetType,
             ],
             'validPeriod' => [
                 'end' => $fechaVencimiento->toAtomString(),

@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class RentaFinalizadaPropietarioReferente extends Notification
+class RentaFinalizadaPropietarioReferente extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -53,19 +53,36 @@ class RentaFinalizadaPropietarioReferente extends Notification
      */
     public function toMail($notifiable)
     {
-        $inmueble = $this->renta->idInmueble;
+	$renta = $this->renta;
+	$inmueble = $renta->idInmueble;
+	$unidad = $renta->idUnidad;
 
-        if ($inmueble->enum_tabla_hija === 'INMUEBLES_PADRE') {
-            $line = 'El contrato de renta para el inmueble: "'.$inmueble->idInmueblePadre->nombre.'" ha finalizado.';
-        } else {
-            $line = 'El contrato de renta para la unidad: "Piso: '.$inmueble->piso.' - Número: '.$inmueble->numero.'" ha finalizado.';
-        }
+	if ($unidad) {
+	    $direccion = $unidad->idInmueblePadre->idDireccion;
+	    $line = 'El contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nº '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado.'; 
+	} else {
+            $direccion = $inmueble->idInmueblePadre->idDireccion;
+            $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado.';
+	}
+
+	$line2 = 'Inquilino: '.$renta->idInquilino->nombre_y_apellidos;
+        $line3 = 'Fondo de garantía: '.number_format($renta->garantia,0,',','.').' '.$renta->idMoneda->abbr;
+	$line4 = 'Utilizado del fondo de Garantía: '.number_format($renta->monto_descontado_garantia_finalizacion_contrato,0,',','.').' '.$renta->idMoneda->abbr;
+        $line5 = 'Detalle de uso del depósito de Garantía: '.$renta->motivo_descuento_garantia;
+	$line6 = 'Monto a ser reembolsado al Inquilino: '.number_format($renta->garantia - $renta->monto_descontado_garantia_finalizacion_contrato,0,',','.').' '.$renta->idMoneda->abbr;
+        $line7 = 'Observaciones: '.$renta->observacion;
 
         return (new MailMessage)
             ->subject('Contrato de renta finalizado')
             ->greeting('Hola '.$notifiable->idPersona->nombre)
-            ->line($line)
-            ->action('Ir a "Rentas"', url('/inmuebles/'.$inmueble->id_inmueble_padre.'/rentas'));
+	    ->line($line)
+	    ->line($line2)
+	    ->line($line3)
+	    ->line($line4)
+	    ->line($line5)
+	    ->line($line6)
+	    ->line($line7)
+            ->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
     }
 
     /**

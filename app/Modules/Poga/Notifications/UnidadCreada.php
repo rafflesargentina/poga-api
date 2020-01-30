@@ -2,37 +2,34 @@
 
 namespace Raffles\Modules\Poga\Notifications;
 
-use Raffles\Modules\Poga\Models\{ Unidad, User };
+use Raffles\Modules\Poga\Models\Unidad;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class UnidadCreada extends Notification
+class UnidadCreada extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * The Unidad and User models.
+     * The Unidad model.
      *
      * @var Unidad $unidad
-     * @var User     $user
      */
-    protected $unidad, $user;
+    protected $unidad;
 
     /**
      * Create a new notification instance.
      *
      * @param Unidad $unidad The Unidad model.
-     * @param User   $user   The User model.
      *
      * @return void
      */
-    public function __construct(Unidad $unidad, User $user)
+    public function __construct(Unidad $unidad)
     {
         $this->unidad = $unidad;
-        $this->user = $user;
     }
 
     /**
@@ -55,12 +52,14 @@ class UnidadCreada extends Notification
     public function toMail($notifiable)
     {
         $inmueblePadre = $this->unidad->idInmueblePadre;
+	$direccion = $inmueblePadre->idDireccion;
+	$tipoInmueble = $this->unidad->idInmueble->idTipoInmueble->tipo;
 
         return (new MailMessage)
-            ->subject('Agregaste un nuevo Unidad a nuestros registros')
-            ->greeting('Hola '.$this->user->idPersona->nombre)
-            ->line('Creaste la unidad "'.$this->unidad->numero.'" para el inmueble "'.$inmueblePadre->nombre.'"')
-            ->action('Ir a "Unidades de Inmueble"', url('/inmuebles/'.$inmueblePadre->id.'/unidades'));
+            ->subject('Registraste el '.$tipoInmueble.' nº '.$this->unidad->numero)
+            ->greeting('Hola '.$notifiable->idPersona->nombre)
+            ->line('Registraste el '.$tipoInmueble.' piso '.$this->unidad->piso.' nº '.$this->unidad->numero.' para el inmueble "'.$inmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).'.')
+            ->action('Ir a "Mis Inmuebles"', str_replace('api.', 'app.', url('/cuenta/mis-inmuebles')));
     }
 
     /**

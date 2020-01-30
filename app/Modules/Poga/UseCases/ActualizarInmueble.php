@@ -59,7 +59,7 @@ class ActualizarInmueble
         $direccion = $this->actualizarDireccion($rDireccion);
         $inmueble = $this->actualizarInmueble($rInmueble);
 
-        //$this->sincronizarCaracteristicas($inmueble);
+        $this->sincronizarCaracteristicas($inmueble);
         $this->sincronizarFormatos($inmueble);
 
         $this->nominarOAsignarPropietario($rPersona, $inmueble);
@@ -107,9 +107,15 @@ class ActualizarInmueble
      */
     protected function actualizarInmueblePadre(InmueblePadreRepository $repository)
     {
-        if (isset($this->data['id_inmueble_padre'])) {
-            return $repository->update($this->inmueblePadre, $this->data['id_inmueble_padre'])[1];
-        }
+	$data = $this->data;
+
+        return $repository->update($this->inmueblePadre, [
+            'cant_pisos' => $data['cant_pisos'],
+            'comision_administrador' => $data['comision_administrador'],
+            'divisible_en_unidades' => $data['divisible_en_unidades'],
+            'nombre' => $data['nombre'],
+            ]
+        )[1];
     }
 
     /**
@@ -123,8 +129,9 @@ class ActualizarInmueble
     {
         if (isset($this->data['caracteristicas'])) {
             $caracteristicasTipoInmueble = $this->data['caracteristicas'];
-            foreach ($caracteristicasTipoInmueble as $caracteristicaTipoInmueble) {
-                $inmueble->caracteristicas()->sync($caracteristicaTipoInmueble['id_caracteristica']['id'], ['cantidad' => $caracteristicaTipoInmueble['id_caracteristica']['cantidad'], 'enum_estado' => 'ACTIVO', 'id_caracteristica_tipo_inmueble' => $caracteristicaTipoInmueble['id']]);
+	    $inmueble->caracteristicas()->sync([]);
+	    foreach ($caracteristicasTipoInmueble as $caracteristicaTipoInmueble) {
+                $inmueble->caracteristicas()->syncWithoutDetaching([$caracteristicaTipoInmueble['id_caracteristica']['id'] => ['cantidad' => $caracteristicaTipoInmueble['id_caracteristica']['cantidad'], 'enum_estado' => 'ACTIVO', 'id_caracteristica_tipo_inmueble' => $caracteristicaTipoInmueble['id']]]);
             }
         }
     }

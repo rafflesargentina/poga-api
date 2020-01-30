@@ -2,10 +2,16 @@
 
 namespace Raffles\Modules\Poga\Models;
 
+use Raffles\Modules\Poga\Filters\PagareFilters;
+use Raffles\Modules\Poga\Sorters\PagareSorters;
+
 use Illuminate\Database\Eloquent\Model;
+use RafflesArgentina\FilterableSortable\FilterableSortableTrait;
 
 class Pagare extends Model
 {
+    use FilterableSortableTrait;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -15,26 +21,31 @@ class Pagare extends Model
         'descripcion',
         'enum_clasificacion_pagare',    
         'enum_estado',
-    'id_distribucion_expensa',    
+        'id_distribucion_expensa',    
         'id_factura',    
-    'id_inmueble',
+        'id_inmueble',
         'id_moneda',
-    'id_persona_acreedora',
+        'id_persona_acreedora',
         'id_persona_deudora',
         'id_tabla',
         'id_tipo_pagare',
-    'fecha_pagare',
+        'fecha_pagare',
         'fecha_vencimiento',
         'fecha_pago_a_confirmar',
         'fecha_pago_confirmado',
-    'fecha_pago_real',
+        'fecha_pago_real',
         'mes_a_pagar',
         'monto',
         'nro_comprobante',
-    'pagado_fuera_sistema',
-        'pagado_con_fondos_de',
+        'pagado_fuera_sistema',
+	'pagado_con_fondos_de',
+	'revertido',
     ];
 
+    protected $filters = PagareFilters::class;
+
+    protected $sorters = PagareSorters::class;
+    
     /**
      * The table associated with the model.
      *
@@ -47,7 +58,7 @@ class Pagare extends Model
      *
      * @var array
      */
-    protected $with = ['idInmueble', 'IdMoneda','IdFactura', 'idPersonaAcreedora', 'idUnidad'];
+    protected $with = ['idInmueble', 'IdMoneda', 'IdFactura', 'idPersonaAcreedora', 'idRenta', 'idUnidad.idInmueblePadre'];
 
     /**
      * Get the factura that owns the pagare.
@@ -90,10 +101,35 @@ class Pagare extends Model
     }
 
     /**
+     * Get the renta that owns the pagare.
+     */
+    public function idRenta()
+    {
+        return $this->belongsTo(Renta::class, 'id_tabla');
+    }
+
+    /**
+     * Get the pagare padre that owns the pagare.
+     */
+    public function idPagarePadre()
+    {
+        return $this->belongsTo(Pagare::class, 'id_tabla');
+    }
+
+    /**
      * Get the unidad that owns the pagare.
      */
     public function idUnidad()
     {
         return $this->belongsTo(Unidad::class, 'id_inmueble', 'id_inmueble');
+    }
+
+    public function getMontoAttribute($value)
+    {
+        if ($this->enum_clasificacion_pagare === 'COMISION') {
+            return $value * -1;
+	}
+
+	return $value;
     }
 }

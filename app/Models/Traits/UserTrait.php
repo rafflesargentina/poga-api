@@ -2,6 +2,8 @@
 
 namespace Raffles\Models\Traits;
 
+use Raffles\Notifications\ResetPasswordNotification;
+
 trait UserTrait
 {
     /**
@@ -36,5 +38,16 @@ trait UserTrait
         if ('' !== $value) {
             $this->attributes['password'] = bcrypt($value);
         }
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 }

@@ -3,7 +3,7 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use Raffles\Modules\Poga\Models\{ Persona, User };
-//use Raffles\Modules\Poga\Notifications\InvitacionCreada;
+use Raffles\Modules\Poga\Notifications\InvitacionCreada;
 use Raffles\Modules\Poga\Repositories\{ PersonaRepository, RoleRepository, UserRepository };
 
 use Illuminate\Foundation\Bus\DispatchesJobs;
@@ -106,14 +106,14 @@ class CrearPersona
             $user = $repository->create(
                 [
                 'codigo_validacion' => str_random(),
-                'email' => $this->data['id_persona']['mail'],
+                'email' => $persona->mail,
                 'first_name' => $persona->nombre,
                 'id_persona' => $persona->id,
                 'last_name' => $persona->apellido,
                 ]
             )[1];
 
-            //$user->notify(new InvitacionCreada($user->idPersona));
+            $user->notify(new InvitacionCreada($user->idPersona));
 
             return $user;
         }

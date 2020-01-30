@@ -24,8 +24,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('poga:generar:multas')->dailyAt('03:30');
-        $schedule->command('poga:generar:pagares')->dailyAt('03:30');
+        $schedule->command('poga:notificar:vencimiento-contratos-renta')->dailyAt('00:00');
+        $schedule->command('poga:notificar:vencimiento-contratos-renta')->dailyAt('09:00');
+	$schedule->command('poga:renovar-contratos-renta')->dailyAt('01:00');
+        $schedule->command('poga:generar:multas')->dailyAt('03:00');
+	$schedule->command('poga:generar:pagares')->dailyAt('03:00');
     }
 
     /**

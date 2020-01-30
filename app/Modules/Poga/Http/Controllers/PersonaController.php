@@ -2,6 +2,7 @@
 
 namespace Raffles\Modules\Poga\Http\Controllers;
 
+use Raffles\Modules\Poga\Http\Requests\PersonaRequest;
 use Raffles\Modules\Poga\Repositories\PersonaRepository;
 use Raffles\Modules\Poga\UseCases\CrearPersona;
 
@@ -50,37 +51,13 @@ class PersonaController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param Request $request
+     * @param  PersonaRequest $request The FormRequest object.
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function store(PersonaRequest $request)
     {
         $data = $request->all();
-
-        $request->validate(
-            [
-                'enum_rol' => 'required',
-                'apellido' => 'required_if:enum_tipo_persona,FISICA',
-            'ci' => 'required_if:enum_tipo_persona,FISICA',
-            'cuenta_bancaria' => 'required',
-            'direccion' => 'required',
-            'direccion_facturacion' => 'required',
-            'enum_tipo_persona' => 'required',
-            'fecha_nacimiento' => 'required_if:enum_tipo_persona,FISICA',
-            'id_banco' => 'required',
-            'id_pais' => 'required',
-                'mail' => 'required',
-            'nombre' => 'required',
-            'razon_social' => 'required',
-            'ruc' => 'required_if:enum_tipo_persona,JURIDICA',
-            'ruc_facturacion' => 'required',
-            'telefono' => 'required',
-            'titular_cuenta' => 'required',
-            ]
-        );
-
-        //$data = $request->all();
         $user = $request->user('api');
         $inmueblePersona = $this->dispatchNow(new CrearPersona($data, $user));
 

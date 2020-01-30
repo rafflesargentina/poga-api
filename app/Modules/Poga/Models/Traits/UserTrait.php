@@ -16,4 +16,13 @@ trait UserTrait
             $this->attributes['password'] = bcrypt($value);
         }
     }
+
+    /**
+     * Set up the Route for SMS Notification.
+     * 
+     * @return void
+     */
+    public function routeNotificationForSmsApi() {
+        return $this->idPersona->telefono_celular;
+    }  
 }

@@ -3,12 +3,9 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use GuzzleHttp\Client;
-use Illuminate\Http\Request;
-use Illuminate\Foundation\Bus\DispatchesJobs;
 
 class GenerarBoletaPago
 {
-
     /**
      * The Client.
      *
@@ -43,14 +40,22 @@ class GenerarBoletaPago
     }
 
     /**
+     * Execute the job.
      *
+     * @return void
      */
     public function handle()
     {
+        if (\App::environment('local')) {
+            $url = env('DEBTS_TESTING_URL').'/debts';
+        } else {
+            $url = env('DEBTS_URL').'/debts';
+	}
+
         $response = $this->client->post(
-            'https://poga.base97.com/api/v1/debts', [
+            $url, [
             'json' => [
-                'debt' => $this->data
+                'debt' => array_merge($this->data, ['uiTheme' => ['name' => 'poga']])
             ]
             ]
         );

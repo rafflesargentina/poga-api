@@ -33,7 +33,7 @@ trait InmuebleTrait
             return null;
         }
 
-        return $direccion->calle_principal.$direccion->calle_secundaria ? ' c/'.$direccion->calle_secundaria.' '.$direccion->numeracion : $direccion->numeracion;
+        return $direccion->calle_principal.' '.($direccion->calle_secundaria ? 'c/'.$direccion->calle_secundaria.' '.$direccion->numeracion : $direccion->numeracion);
     }
 
     /**

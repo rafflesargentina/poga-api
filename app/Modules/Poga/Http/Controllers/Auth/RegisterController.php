@@ -4,10 +4,14 @@ namespace Raffles\Modules\Poga\Http\Controllers\Auth;
 
 use Raffles\Modules\Poga\Models\{ Persona, User };
 use Raffles\Http\Controllers\Auth\RegisterController as Controller;
+use Raffles\Modules\Poga\Mail\UsuarioCreadoParaAdminPoga;
 use Raffles\Modules\Poga\Notifications\UsuarioRegistrado;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+
+use Log;
 use RafflesArgentina\ResourceController\Traits\FormatsValidJsonResponses;
 
 class RegisterController extends Controller
@@ -28,7 +32,18 @@ class RegisterController extends Controller
         $user = $this->create($request->all());
         $user->loadMissing('roles');
 
-        $user->notify(new UsuarioRegistrado($user));
+	try {
+            $user->notify(new UsuarioRegistrado($user));
+        } catch (\Exception $e) {
+            Log::error('No se pudo enviar el email de notificación para el usuario registrado.');
+	}
+
+	try {
+            $admin = User::where('email', env('MAIL_ADMIN_ADDRESS'))->first();
+	    Mail::to(env('MAIL_ADMIN_ADDRESS'))->send(new UsuarioCreadoParaAdminPoga($user));
+	} catch (\Exception $e) {
+            Log::error('No se pudo enviar el mail de notificación de usuario registrado al Administrador de Poga.');
+	}
 
         return $user;
 

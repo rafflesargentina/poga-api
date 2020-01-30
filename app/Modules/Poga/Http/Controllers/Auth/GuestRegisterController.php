@@ -76,22 +76,23 @@ class GuestRegisterController extends Controller
     {
         return Validator::make(
             $data, [
-            'email' => 'required|email',
+	    'accepted' => 'required|accepted',
+	    'email' => 'required|email',
             'id_persona.apellido' => 'required_if:enum_tipo_persona,FISICA',
-            'id_persona.ciudades_cobertura' => 'array',
+            //'id_persona.ciudades_cobertura' => 'sometimes|array',
             'id_persona.fecha_nacimiento' => 'nullable|date',
-            'id_persona.id_pais' => 'required',
-            'id_persona.id_pais_cobertura' => 'required',
+            //'id_persona.id_pais' => 'sometimes|required',
+            //'id_persona.id_pais_cobertura' => 'sometimes|required',
             'id_persona.nombre' => 'required',
-            'id_persona.ci' => 'required',
+            //'id_persona.ci' => 'sometimes|required',
             'password' => 'required|confirmed',
-            'plan' => [
-                Rule::requiredIf(
-                    function () use ($user) {
-                        return $user->role_id === '1';
-                    }
-                )
-            ]
+            //'plan' => [
+                //Rule::requiredIf(
+                    //function () use ($user) {
+                        //return $user->role_id === '1';
+                    //}
+                //)
+            //]
             ]
         );
     }

@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class RentaActualizada extends Notification
+class RentaActualizada extends Notification implements ShouldQueue
 {
     use Queueable;
 

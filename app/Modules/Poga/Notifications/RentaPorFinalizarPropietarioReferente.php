@@ -9,12 +9,12 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class RentaCreada extends Notification
+class RentaPorFinalizarPropietarioReferente extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * The Renta model.
+     * The Renta model;
      *
      * @var Renta
      */
@@ -23,7 +23,7 @@ class RentaCreada extends Notification
     /**
      * Create a new notification instance.
      *
-     * @param Renta $renta The Renta model.
+     * @param Renta $renta  The Renta model.
      *
      * @return void
      */
@@ -53,20 +53,24 @@ class RentaCreada extends Notification
      */
     public function toMail($notifiable)
     {
-        $inmueble = $this->renta->idInmueble;
-        $unidad = $this->renta->idUnidad;
+	$renta = $this->renta;
+        $inmueble = $renta->idInmueble;
+        $unidad = $renta->idUnidad;
 
         if ($unidad) {
-            $line = 'Creaste un contrato de renta para la Unidad "'.$unidad->piso.' - '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'"';
+            $line = 'El contrato de renta para el '.$unidad->tipo.' '.$unidad->piso.' nº '.$unidad->numero.' del Inmueble "'.$unidad->idInmueblePadre->nombre.'" está por vencer en '.$renta->dias_notificacion_previa_renovacion.' días. Coordina con tu inquilino la finalización o renovación.';
         } else {
-            $line = 'Creaste un contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'"';
+            $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'" está por vencer en '.$this->renta->dias_notificacion_previa_renovacion.' días. Coordina con tu inquilino la finalización o renovación.';
         }
 
+        $line2 = 'Inquilino: '.$renta->idInquilino->nombre_y_apellidos;
+
         return (new MailMessage)
-            ->subject('Creaste un contrato de Renta')
+            ->subject('Tu contrato de Renta próximo a vencer')
             ->greeting('Hola '.$notifiable->idPersona->nombre)
-            ->line($line)
-            ->action('Ir a "Rentas"', url('/inmuebles/'.$inmueble->id_inmueble_padre.'/rentas'));
+	    ->line($line)
+	    ->line($line2)
+	    ->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
     }
 
     /**

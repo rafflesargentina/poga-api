@@ -51,24 +51,24 @@ class ActualizarEstadoPagare
     {
         $pagare = $repository->update($this->pagare, ['enum_estado' => $this->estado])[1];
 
-	$personaAdministradorReferente = $pagare->idInmueble->idAdministradorReferente;
-	if ($personaAdministradorReferente) {
-	    $userAdministradorReferente = $personaAdministradorRferente->idPersona->user;
-	    if ($userAdministradorReferente) {
-	        $userAdministrador->notify(new EstadoPagareActualizado($pagare));
-            }
-	}
+	//$personaAdministradorReferente = $pagare->idInmueble->idAdministradorReferente;
+	//if ($personaAdministradorReferente) {
+	    //$userAdministradorReferente = $personaAdministradorReferente->idPersona->user;
+	    //if ($userAdministradorReferente) {
+	        //$userAdministrador->notify(new EstadoPagareActualizado($pagare));
+            //}
+	//}
 
         $acreedor = $pagare->idPersonaAcreedora->user;
         $deudor = $pagare->idPersonaDeudora->user;
 
-        if ($acreedor) {
-            $acreedor->notify(new EstadoPagareActualizado($pagare));
-        }
+        //if ($acreedor) {
+            //$acreedor->notify(new EstadoPagareActualizado($pagare));
+        //}
 
-        if ($deudor) {
-            $deudor->notify(new EstadoPagareActualizado($pagare));
-        }
+        //if ($deudor) {
+            //$deudor->notify(new EstadoPagareActualizado($pagare));
+        //}
 
         return $pagare;
     }

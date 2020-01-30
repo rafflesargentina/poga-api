@@ -67,7 +67,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Asuncion',
 
     /*
     |--------------------------------------------------------------------------
@@ -164,7 +164,8 @@ return [
 
         /*
          * Package Service Providers...
-         */
+     */
+        Gr8Shivam\SmsApi\SmsApiServiceProvider::class,
         Ip2location\IP2LocationLaravel\IP2LocationLaravelServiceProvider::class,
         Jenssegers\Agent\AgentServiceProvider::class,
 
@@ -176,7 +177,6 @@ return [
         Raffles\Providers\BroadcastServiceProvider::class,
         Raffles\Providers\EventServiceProvider::class,
         Raffles\Providers\RouteServiceProvider::class,
-
     ],
 
     /*
@@ -191,7 +191,6 @@ return [
     */
 
     'aliases' => [
-
         'Agent' => Jenssegers\Agent\Facades\Agent::class,
         'App' => Illuminate\Support\Facades\App::class,
         'Artisan' => Illuminate\Support\Facades\Artisan::class,
@@ -222,11 +221,10 @@ return [
         'Route' => Illuminate\Support\Facades\Route::class,
         'Schema' => Illuminate\Support\Facades\Schema::class,
         'Session' => Illuminate\Support\Facades\Session::class,
+        'SmsApi' => Gr8Shivam\SmsApi\SmsApiFacade::class,
         'Storage' => Illuminate\Support\Facades\Storage::class,
         'URL' => Illuminate\Support\Facades\URL::class,
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
-
     ],
-
 ];

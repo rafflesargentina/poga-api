@@ -17,7 +17,7 @@ class ModuleServiceProvider extends ServiceProvider
         $this->loadViewsFrom(module_path('poga', 'Resources/Views', 'app'), 'poga');
         $this->loadMigrationsFrom(module_path('poga', 'Database/Migrations', 'app'), 'poga');
         $this->loadConfigsFrom(module_path('poga', 'Config', 'app'));
-        $this->loadFactoriesFrom(module_path('poga', 'Database/Factories', 'app'));
+	$this->loadFactoriesFrom(module_path('poga', 'Database/Factories', 'app'));
     }
 
     /**

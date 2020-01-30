@@ -45,7 +45,6 @@ class GenerarPagareRentaPrimerMes
 
         $fechaInicio = $renta->fecha_inicio;
         $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicio->day, 0, 0, 0);
-        //$fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
         $fechaVencimiento = $now->copy()->addDays(10);
 
         $primerDiaPeriodo = $startOfMonth->copy()->addDays($renta->dia_mes_pago)->subDay();
@@ -60,7 +59,7 @@ class GenerarPagareRentaPrimerMes
             $offset = 0;
         }
 
-        $monto = round(($renta->monto / $cantDiasPeriodo * ($cantDiasPeriodo - $offset)), 2, PHP_ROUND_HALF_UP);
+        $monto = intval(round(($renta->monto / $cantDiasPeriodo * ($cantDiasPeriodo - $offset)), 2, PHP_ROUND_HALF_UP));
 
         $pagare = $repository->create(
             [
@@ -77,12 +76,18 @@ class GenerarPagareRentaPrimerMes
             ]
         )[1];
 
-        $inquilino = $renta->idInquilino;
+	$inquilino = $renta->idInquilino;
+
+        $targetLabel = $inquilino->nombre_y_apellidos;
+        $targetType = $inquilino->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
+	$targetNumber = $inquilino->enum_tipo_persona === 'FISICA' ? $inquilino->ci : $inquilino->ruc;
+	$label = 'Pago de renta para el inquilino ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+        $summary = $label;
 
         $items = [];
         array_push(
             $items, [
-            'label' => 'Pago de renta',
+            'label' => $summary,
             'code' => $pagare->id,
             'amount' => [
                 'currency' => 'PYG',
@@ -95,6 +100,8 @@ class GenerarPagareRentaPrimerMes
             if ($renta->garantia > 0) {
                 $pagareDepositoGarantia = $this->dispatchNow(new GenerarPagareDepositoGarantia($renta));
 
+                $summary = $summary.'; con depósito de garantía';
+
                 array_push(
                     $items, [
                         'label' => 'Depósito de garantía',
@@ -106,11 +113,13 @@ class GenerarPagareRentaPrimerMes
                     ]
                 );
     
-                $monto = $monto + $pagareDepositoGarantia->monto;
+                $monto = intval(round($monto + $pagareDepositoGarantia->monto, 2, PHP_ROUND_HALF_UP));
             }
 
             if ($renta->comision_inmobiliaria > 0) {
                 $pagareComisionInmobiliaria = $this->dispatchNow(new GenerarPagareComisionInmobiliaria($renta));
+
+                $summary = $summary.' y con pago de comisión inmobiliaria.';
 
                 array_push(
                     $items, [
@@ -123,7 +132,7 @@ class GenerarPagareRentaPrimerMes
                     ]
                 );
 
-                       $monto = $monto + $pagareComisionInmobiliaria->monto;
+                $monto = intval(round($monto + $pagareComisionInmobiliaria->monto, 2, PHP_ROUND_HALF_UP));
             }
         }
 
@@ -133,16 +142,16 @@ class GenerarPagareRentaPrimerMes
                 'value' => $monto,
             ],
             'description' => [
-            'items' => $items,
-                'summary' => 'Pago de renta con fecha: ',
-            'text' => 'Pago de renta con fecha: ',
+                'items' => $items,
+                'summary' => $summary,
+                'text' => $summary,
             ],
             'docId' => $pagare->id,
-            'label' => 'Pago de renta con fecha: ',
+            'label' => $label,
             'target' => [
-                'label' => $inquilino->nombre.' '.$inquilino->apellido,
-                'number' => $inquilino->ruc ? $inquilino->ruc : $inquilino->ci,
-                'type' => $inquilino->ruc ? 'ruc' : 'cip',
+                'label' => $targetLabel,
+                'number' => $targetNumber,
+                'type' => $targetType,
             ],
             'validPeriod' => [
                 'end' => $fechaVencimiento->toAtomString(),
@@ -150,28 +159,7 @@ class GenerarPagareRentaPrimerMes
             ]
         ];
 
-        $boleta = $this->dispatchNow(new GenerarBoletaPago($datosBoleta));
-
-        $personaAdministradorReferente = $renta->idInmueble->idAdministradorReferente;
-        // Puede que el inmueble no tenga un administrador referente.
-        if ($personaAdministradorReferente) {
-            $userAdministradorReferente = $personaAdministradorReferente->idPersona->user;
-            if ($userAdministradorReferente) {
-                $userAdministradorReferente->notify(new PagareCreadoAdministradorReferente($pagare));
-            }
-        }
-
-        $acreedor = $pagare->idPersonaAcreedora->user;
-        // El acreedor es el propietario. Puede que no tenga usuario registrado.
-        if ($acreedor) {
-            $acreedor->notify(new PagareCreadoPersonaAcreedora($pagare));
-        }
-
-        $deudor = $pagare->idPersonaDeudora->user;
-        // El deudor es el inquilino. Puede que no tenga usuario registrado.
-        if ($deudor) {
-            $deudor->notify(new PagareCreadoPersonaDeudora($pagare));
-        }
+	$boleta = $this->dispatchNow(new GenerarBoletaPago($datosBoleta));
 
         return $boleta;
     }

@@ -7,6 +7,7 @@ use Raffles\Modules\Poga\Repositories\RentaRepository;
 use Raffles\Modules\Poga\UseCases\FinalizarContratoRenta;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use RafflesArgentina\ResourceController\Traits\FormatsValidJsonResponses;
 
 class FinalizarContratoController extends Controller
@@ -48,10 +49,16 @@ class FinalizarContratoController extends Controller
 
         $request->validate(
             [
-            'fecha_finalizacion_contrato' => 'required|date',
-            'monto_descontado_garantia_finalizacion_contrato' => 'required|numeric',
-            ]
-        );
+                'fecha_finalizacion_contrato' => 'required|date',
+	        'monto_descontado_garantia_finalizacion_contrato' => [
+		    'required',	
+		    'numeric',
+	        ],
+                'motivo_descuento_garantia' => [
+                    Rule::requiredIf($request->monto_descontado_garantia_finalizacion_contrato > 0),
+		]
+	    ]
+	);
 
         $data = $request->all();
         $user = $request->user('api');

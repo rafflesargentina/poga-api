@@ -24,13 +24,10 @@ class LoginController extends Controller
             $user = $this->guard()->user();
             $user->load('permissions', 'roles');
 
-            if ($user->roles->count() === 1) {
-                $roleId = $user->roles->first()->id;
-            } else {
-                $roleId = null;
-            }
-
-            $user->update(['role_id' => $roleId]);
+	    $roleId = $request->role_id;
+            if ($roleId) {
+              $user->update(['role_id' => $roleId]);
+	    }
 
             $token = $user->createToken(env('APP_NAME'));
             $accessToken = $token->accessToken;

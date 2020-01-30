@@ -4,7 +4,7 @@ namespace Raffles\Modules\Poga\UseCases;
 
 use Raffles\Modules\Poga\Models\{ Renta, User };
 use Raffles\Modules\Poga\Repositories\RentaRepository;
-use Raffles\Modules\Poga\Notifications\{ RentaFinalizada, RentaFinalizadaInquilinoReferente, RentaFinalizadaPropietarioReferente };
+use Raffles\Modules\Poga\Notifications\{ RentaFinalizadaInquilinoReferente, RentaFinalizadaPropietarioReferente };
 
 use Illuminate\Foundation\Bus\DispatchesJobs;
 
@@ -61,9 +61,6 @@ class FinalizarContratoRenta
 
     protected function handleNotifications(Renta $renta)
     {
-        // Administrador
-        $this->user->notify(new RentaFinalizada($renta));
-
         $inquilino = $renta->idInquilino;
         $inquilinoUser = $inquilino->user;
         if ($inquilinoUser) {

@@ -4,12 +4,13 @@ namespace Raffles\Modules\Poga\Notifications;
 
 use Raffles\Modules\Poga\Models\Pagare;
 
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class PagareCreadoPersonaAcreedora extends Notification
+class PagareCreadoPersonaAcreedora extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -56,26 +57,42 @@ class PagareCreadoPersonaAcreedora extends Notification
         $pagare = $this->pagare;
         $inmueble = $pagare->idInmueble;
         $unidad = $pagare->idUnidad;
-        $deudor = $pagare->idPersonaDeudora;
+	$deudor = $pagare->idPersonaDeudora;
 
-        if ($unidad) {
-            $line1 = 'Sos acreedor de un pagaré para la Unidad "Piso: '.$unidad->piso.' - '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre;
-        } else {
-            $line1 = 'Sos acreedor de un pagaré para el inmueble "'.$inmueble->idInmueblePadre->nombre.'"';
-        }
-
-        $line2 = 'Persona deudora: '.$deudor->nombre_y_apellidos;
-        $line3 = 'Tipo: '.$pagare->enum_clasificacion_pagare;
-        $line4 = 'Monto: '.$pagare->monto.' '.$pagare->idMoneda->moneda;
+        switch ($pagare->enum_clasificacion_pagare) {
+	case 'RENTA':
+            if ($unidad) {
+	        $line1 = 'Se generó un pago de renta pendiente por el contrato del '.$unidad->idInmueble->idTipoInmueble->tipo.' piso '.$unidad->piso.' nº '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'"';
+            } else {
+                $line1 = 'Se te generó un pago de renta pendiente por el contrato del inmueble "'.$inmueble->idInmueblePadre->nombre.'"';
+	    }
+            $line2 = 'Inquilino: '.$deudor->nombre_y_apellidos;
+            $line3 = 'Monto: '.number_format($pagare->monto,0,',','.').' '.$pagare->idMoneda->abbr;
+            $line4 = 'Vencimiento: '.Carbon::parse($pagare->fecha_vencimiento)->format('d/m/Y');
+	    $line5 = 'Comparta el siguiente link con el inquilino para la realización de pagos: '.str_replace('.api', '', url('realiza-un-pago/'.$pagare->id));
+	    $subject = 'Pago pendiente de renta generado '.Carbon::parse($pagare->fecha_pagare)->format('d/m/Y');
+	break;
+        default:
+            if ($unidad) {
+                $line1 = 'Se generó una solicitud de pago por el '.$unidad->idInmueble->idTipoInmueble->tipo.' piso '.$unidad->piso.' nº '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'"';
+            } else {
+                $line1 = 'Se generó una solicitud de pago por el inmueble "'.$inmueble->idInmueblePadre->nombre.'"';
+            }
+            $line2 = 'Inquilino: '.$deudor->nombre_y_apellidos;
+            $line3 = 'Monto: '.number_format($pagare->monto,0,',','.').' '.$pagare->idMoneda->abbr;
+	    $line4 = 'Observaciones: '.$pagare->descripcion;
+            $line5 = 'Comparta el siguiente link con el inquilino para la realización de pagos: '.str_replace('.api', '', url('realiza-un-pago/'.$pagare->id));
+            $subject = 'Solicitud de pago: '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+	}
 
         return (new MailMessage)
-            ->subject('Sos acreedor de un pagaré')
+            ->subject($subject)
             ->greeting('Hola '.$notifiable->idPersona->nombre)
             ->line($line1)
             ->line($line2)
             ->line($line3)
-            ->line($line4)
-            ->action('Ir a "Finanzas"', url('inmuebles/'.$inmueble->id_inmueble_padre.'/finanzas'));
+	    ->line($line4)
+	    ->line($line5);
     }
 
     /**

@@ -4,7 +4,7 @@ namespace Raffles\Modules\Poga\Http\Controllers\Rentas;
 
 use Raffles\Modules\Poga\Http\Controllers\Controller;
 use Raffles\Modules\Poga\Repositories\{ InmuebleRepository, RentaRepository };
-use Raffles\Modules\Poga\UseCases\{ BorrarRenta, CrearRenta, ActualizarRenta };
+use Raffles\Modules\Poga\UseCases\{ ActualizarRenta, BorrarRenta, CrearRenta };
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -13,6 +13,8 @@ use RafflesArgentina\ResourceController\Traits\{ FormatsValidJsonResponses, Work
 class RentaController extends Controller
 {
     use FormatsValidJsonResponses, WorksWithFileUploads, WorksWithRelations;
+
+    protected $pruneHasMany;
 
     /**
      * Create a new RentaController instance.
@@ -39,14 +41,13 @@ class RentaController extends Controller
     { 
         $this->authorize('view', new $this->repository->model);
 
-        $request->validate(
-            [
-            'idInmueblePadre' => 'required',
-            ]
-        );
-
-        $user = $request->user('api');
-        $items = $this->repository->findRentas();
+        switch ($request->tipoListado) {
+        case 'MisRentas':
+            $items = $this->repository->misRentas($request);
+        default:
+	    $items = $this->repository->todos();
+	    break;
+        }
 
         return $this->validSuccessJsonResponse('Success', $items);
     }
@@ -62,9 +63,9 @@ class RentaController extends Controller
     public function show(Request $request, $id)
     {
         $model = $this->repository->findOrFail($id);
-        $model->loadMissing('idUnidad');
+        $model->loadMissing('documentos', 'estados_inmueble', 'idUnidad');
 
-        $this->authorize('create', $model);
+        $this->authorize('view', $model);
 
         return $this->validSuccessJsonResponse('Success', $model);
     }
@@ -88,7 +89,7 @@ class RentaController extends Controller
             'dia_mes_pago' => 'required|numeric|max:28',
             'dias_multa' => 'required_if:multa,1',                
             'expensas' => 'boolean',
-            'fecha_fin'  => 'required|date',
+            'fecha_fin'  => 'required|date|after:fecha_inicio',
             'fecha_inicio' => 'required|date',
             'garantia'  => 'required|numeric',
             'id_inmueble' => 'required|numeric',
@@ -112,7 +113,8 @@ class RentaController extends Controller
         );
 
         $data = $request->all();
-        $user = $request->user('api');
+	$user = $request->user('api');
+
         $resultado = $this->dispatchNow(new CrearRenta($data, $user));
 
         return $this->validSuccessJsonResponse('Success', $resultado);
@@ -146,20 +148,19 @@ class RentaController extends Controller
             return $this->validSuccessJsonResponse('Success');
         }
 
-        $request->validate(
-            [
-            'comision_administrador' => 'required|numeric',
-            'dias_multa' => 'required_if:multa,1',
-            'monto_multa_dia' => 'required_if:multa,1|numeric',
-            'multa'=> 'required|boolean',
-            'prim_comision_administrador' => 'required|numeric',
-            ]
-        );
+        //$request->validate(
+            //[
+            //'comision_administrador' => 'required|numeric',
+            //'dias_multa' => 'required_if:multa,1',
+            //'monto_multa_dia' => 'required_if:multa,1|numeric',
+            //'multa'=> 'required|boolean',
+            //'prim_comision_administrador' => 'required|numeric',
+            //]
+        //);
 
-        $data = array_only($request->all(), ['comision_administrador', 'dias_multa', 'monto_multa_dia', 'multa', 'prim_comision_administrador']);
-        $user = $request->user('api');
+        $data = $request->all();
 
-        $renta = $this->dispatchNow(new ActualizarRenta($model, $data, $user));
+        $renta = $this->dispatchNow(new ActualizarRenta($model, $data));
 
         return $this->validSuccessJsonResponse('Success', $renta);
     }

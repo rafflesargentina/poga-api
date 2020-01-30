@@ -13,8 +13,8 @@
 
 // Auth
 Route::get('usuario-invitado/{codigo_validacion}', 'Auth\UsuarioInvitadoController');
-Route::post('cuenta', 'Cuenta\ActualizarCuentaController');
-Route::post('login', 'Auth\LoginController@login');
+Route::post('token-para-pagos', 'Cuenta\TokenParaPagosController');
+Route::post('reenviar-invitacion-registro', 'Auth\ReenviarInvitacionRegistroController');
 Route::post('register', 'Auth\RegisterController@register');
 Route::post('seleccionar-rol', Auth\SeleccionarRolController::class);
 Route::put('registro-invitado/{codigo_validacion}', 'Auth\GuestRegisterController@register');
@@ -22,8 +22,13 @@ Route::apiResource('ciudades-cobertura', Auth\CiudadCoberturaController::class, 
 Route::apiResource('paises-cobertura', Auth\PaisCoberturaController::class, ['only' => ['index']]);
 Route::apiResource('roles', Auth\RolController::class, ['only' => ['index']]);
 
+// Cuenta
+Route::post('cuenta', 'Cuenta\ActualizarCuentaController');
+Route::post('completa-tu-registro', 'Cuenta\CompletarRegistroController');
+
 // Base97
 Route::post('pagos/notificacion', Base97\NotificacionPagoController::class);
+Route::apiResource('pagos', Base97\PagoController::class);
 
 // Espacios
 Route::apiResource('espacios', EspacioController::class);
@@ -39,6 +44,7 @@ Route::put('finanzas/cargarFondoReserva', Finanzas\CargarFondoReservaController:
 Route::put('finanzas/confirmarPago', Finanzas\ConfirmarPagoController::class);
 Route::put('finanzas/rechazarPago', Finanzas\RechazarPagoController::class);
 Route::put('finanzas/distribuirExpensas', Finanzas\DistribuirExpensasController::class);
+Route::put('finanzas/rentas/anular-pago/{id}', Finanzas\AnularPagareRentaController::class);
 Route::apiResource('bancos', Finanzas\BancoController::class, ['only' => ['index']]);
 Route::apiResource('monedas', Finanzas\MonedaController::class, ['only' => ['index']]);
 Route::apiResource('pagares', Finanzas\PagareController::class);
@@ -78,7 +84,11 @@ Route::apiResource('proveedor-servicios', ProveedorServicioController::class);
 
 // Rentas
 Route::put('rentas/{id}/finalizarContrato', Rentas\FinalizarContratoController::class);
+Route::put('rentas/{id}/renovarContrato', Rentas\RenovarContratoController::class);
 Route::apiResource('rentas', Rentas\RentaController::class);
+
+//
+Route::get('reportes', ReporteController::class);
 
 // Servicios
 Route::apiResource('servicios', ServicioController::class);
@@ -89,3 +99,6 @@ Route::put('solicitudes/confirmarPago', Solicitudes\ConfirmarPagoController::cla
 Route::put('solicitudes/rechazarPago', Solicitudes\RechazarPagoController::class);
 Route::apiResource('solicitudes', Solicitudes\SolicitudController::class);
 Route::apiResource('tipos-solicitud', Solicitudes\TipoSolicitudController::class);
+
+// Usuarios
+Route::apiResource('usuarios', Usuarios\UsuarioController::class, ['only' => ['show']]);

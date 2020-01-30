@@ -47,7 +47,8 @@ class NominarInquilinoReferenteParaUnidad
     public function handle(NominacionRepository $repository)
     {
         $data = [
-        'enum_estado' => 'PENDIENTE',
+	    //'enum_estado' => 'PENDIENTE',
+            'enum_estado' => 'ACEPTADO',
             'fecha_hora' => \Carbon\Carbon::now(),
             'id_inmueble' => $this->unidad->id_inmueble,
             'id_persona_nominada' => $this->persona->id,
@@ -58,9 +59,14 @@ class NominarInquilinoReferenteParaUnidad
         ];
 
         $nominacion = $repository->updateOrCreate(
-            ['enum_estado' => 'PENDIENTE', 'id_inmueble' => $this->unidad->id_inmueble, 'id_persona_nominada' => $this->persona->id, 'role_id' => '3'],
+            //['enum_estado' => 'PENDIENTE', 'id_inmueble' => $this->inmueble->id, 'id_persona_nominada' => $this->persona->id, 'role_id' => '3'], // Debería ser pendiente
+	    ['enum_estado' => 'ACEPTADO', 'id_inmueble' => $this->unidad->id_inmueble, 'id_persona_nominada' => $this->persona->id, 'role_id' => '3'],
             $data
         );
+
+
+        // Esta línea tiene que ser eliminada.
+        $inmueblePersona = \Raffles\Modules\Poga\Models\InmueblePersona::create(['id_persona' => $nominacion->id_persona_nominada, 'id_inmueble' => $nominacion->id_inmueble, 'referente' => '1', 'enum_rol' => 'INQUILINO']);
 
         $personaNominada = $nominacion->idPersonaNominada;
         $user = $personaNominada->user;
@@ -68,7 +74,7 @@ class NominarInquilinoReferenteParaUnidad
         if ($user) { 
             // Adjunta el rol inquilino.
             $user->roles()->syncWithoutDetaching(3);
-            $user->notify(new PersonaNominadaParaUnidad($personaNominada, $nominacion, $this->unidad));
+            //$user->notify(new PersonaNominadaParaUnidad($personaNominada, $nominacion, $this->unidad));
         }
 
         return $nominacion;

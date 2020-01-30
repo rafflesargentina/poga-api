@@ -2,9 +2,10 @@
 
 namespace Raffles\Modules\Poga\UseCases;
 
-use Raffles\Modules\Poga\Repositories\{ PagareRepository, UnidadRepository };
-use Raffles\Modules\Poga\Notifications\RentaCreada;
+use Raffles\Modules\Poga\Notifications\{ PagareCreadoPersonaAcreedora, PagareCreadoPersonaDeudora };
+use Raffles\Modules\Poga\Repositories\{ PagareRepository, RentaRepository };
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 
 class CrearPagare
@@ -15,49 +16,86 @@ class CrearPagare
      * The form data and the User model.
      *
      * @var array $data
-     * @var User  $user
      */
-    protected $data, $user;
+    protected $data;
 
     /**
      * Create a new job instance.
      *
      * @param array $data The form data.
-     * @param User  $user The User model.
      *
      * @return void
      */
-    public function __construct($data,$user)
+    public function __construct(array $data)
     {
         $this->data = $data;
-        $this->user = $user;
     }
 
     /**
      * Execute the job.
      *
      * @param PagareRepository $rPagare The PagareRepository object.
+     * @param RentaRepository  $rRenta  The RentaRepository object.
      *
      * @return void
      */
-    public function handle(PagareRepository $rPagare, UnidadRepository $rUnidad)
+    public function handle(PagareRepository $rPagare, RentaRepository $rRenta)
     {
-        $renta = $this->crearPagare($rPagare, $rUnidad);
+	$data = $this->data;
 
-        return $renta;
-    }
+        $renta = $rRenta->where('id_inquilino', $data['id_persona_deudora'])->where('id_inmueble', $data['id_inmueble'])->where('enum_estado', 'ACTIVO')->firstOrFail();
 
-    /**
-     * @param PagareRepository $rPagare The PagareRepository object.
-     */
-    protected function crearPagare(PagareRepository $rPagare, UnidadRepository $rUnidad)
-    {
-        $idUnidad = $this->data['id_unidad'];
-        if ($idUnidad) {
-            $unidad = $rUnidad->find($idUnidad)->first();
-            $this->data['id_inmueble'] = $unidad->id_inmueble;
-        }
+        $pagare = $rPagare->create(
+            [
+	    'descripcion' => $data['descripcion'],
+	    'id_inmueble' => $data['id_inmueble'],
+	    'id_persona_acreedora' => $data['id_persona_acreedora'],
+            'id_persona_deudora' => $data['id_persona_deudora'],
+            'id_tabla' => $renta->id,
+            'monto' => $data['monto'], 
+            'id_moneda' => $data['id_moneda'],
+	    'fecha_pagare' => $data['fecha_pagare'],
+	    'fecha_vencimiento' => $data['fecha_vencimiento'],
+            'enum_estado' => 'PENDIENTE',
+            'enum_clasificacion_pagare' => $data['enum_clasificacion_pagare'],
+            ]
+        )[1];
 
-        return $rPagare->create($this->data)[1];
+	$inmueble = $pagare->idInmueble;
+	$inquilinoReferente = $inmueble->idInquilinoReferente->idPersona;
+
+        $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare));
+        $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare));
+
+        $targetLabel = $inquilinoReferente->nombre_y_apellidos;
+        $targetType = $inquilinoReferente->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
+	$targetNumber = $inquilinoReferente->enum_tipo_persona === 'FISICA' ? $inquilinoReferente->ci : $inquilinoReferente->ruc;
+        $label = 'Solicitud de pago para ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+        $summary = $label.'. Observación: '.$pagare->descripcion;
+        $datosBoleta = [
+            'amount' => [
+                'currency' => 'PYG',
+                'value' => $pagare->monto,
+            ],
+            'description' => [
+                'summary' => $summary,
+                'text' => $summary,
+            ],
+            'docId' => $pagare->id,
+            'label' => $label,
+            'target' => [
+                'label' => $targetLabel,
+                'number' => $targetNumber,
+                'type' => $targetType,
+            ],
+            'validPeriod' => [
+                'end' => Carbon::parse($pagare->fecha_vencimiento)->toAtomString(),
+                'start' => Carbon::parse($pagare->fecha_pagare)->toAtomString()
+            ]
+        ];
+
+	$boleta = $this->dispatchNow(new GenerarBoletaPago($datosBoleta));
+
+        return ['pagare' => $pagare, 'boleta' => $boleta];
     }
 }

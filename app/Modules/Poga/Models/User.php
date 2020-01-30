@@ -2,7 +2,8 @@
 
 namespace Raffles\Modules\Poga\Models;
 
-use Raffles\Modules\Poga\Models\Traits\UserTrait;;
+use Raffles\Models\FeaturedPhoto;
+use Raffles\Modules\Poga\Models\Traits\UserTrait;
 
 use Caffeinated\Shinobi\Models\Role;
 use Caffeinated\Shinobi\Traits\ShinobiTrait;
@@ -61,7 +62,15 @@ class User extends Authenticatable
      *
      * @var array
      */
-    protected $with = ['idPersona', 'idRol'];
+    protected $with = ['avatar', 'idPersona', 'idRol'];
+
+    /**
+     * Get the user's avatar.
+     */
+    public function avatar()
+    {
+        return $this->morphOne(FeaturedPhoto::class, 'photoable')->withDefault();
+    }
 
     /**
      * Get the persona record associated with the user.

@@ -15,7 +15,7 @@ class BancoController extends Controller
     /**
      * The BancoRepository object.
      *
-     * @var BancoRepository $persona
+     * @var BancoRepository
      */
     protected $repository;
 
@@ -28,8 +28,6 @@ class BancoController extends Controller
      */
     public function __construct(BancoRepository $repository)
     {
-        $this->middleware('auth:api');
-
         $this->repository = $repository;
     }
 

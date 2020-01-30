@@ -11,34 +11,18 @@ use Illuminate\Foundation\Bus\Dispatchable;
 
 use Raffles\Modules\Poga\Repositories\RentaRepository;
 use Raffles\Modules\Poga\Models\{ Inmueble, Renta, Pagare };
+use Raffles\Modules\Poga\Notifications\{ PagareCreadoAdministradorReferente, PagareCreadoPersonaAcreedora, PagareCreadoPersonaDeudora };
 
 class GenerarPagares implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    protected $rRenta;
-    /**
-     * Create a new job instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        //
-    }
 
     /**
      * Execute the job.
      *
      * @return void
      */
-    public function handle()
-    {
-        $repository = new RentaRepository;
-        $this->generarRentas($repository);
-    }
-
-    protected function generarRentas(RentaRepository $repository)
+    public function handle(RentaRepository $repository)
     {
         $rentas = $repository->findWhere(['enum_estado' => 'ACTIVO']);
 
@@ -49,39 +33,96 @@ class GenerarPagares implements ShouldQueue
         }
     }
 
-   
-
     public function generarPagoRenta(Renta $renta)
     {
-        $now = Carbon::now()->subMonths(1);
+        $now = Carbon::now();
+        $startOfMonth = $now->copy()->startOfMonth();
 
-        if ($renta->created_at->format('m') !== $now->format('m') && !$renta->vigente) {
-            $fechaInicioRenta = Carbon::createFromFormat('Y-m-d', $renta->fecha_inicio);  
-            $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicioRenta->day, 0, 0, 0);
-            
-            //if($now->eq($fechaCreacionPagare)){
-            $inmueble = $renta->idInmueble;
-            $pagare = $inmueble->pagares()->updateOrCreate(
+        if ($renta->created_at->format('m') !== $now->format('m')) {
+            $fechaInicioRenta = $renta->fecha_inicio;
+	    $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicioRenta->day, 0, 0, 0);
+            $fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
+
+            // En el raro caso que el job corra luego de la fecha del pagaré.
+            if ($fechaVencimiento->toDateString() < $now->toDateString()) {
+                $fechaVencimiento = $now->copy()->addDays(10);
+            }
+
+	    $inmueble = $renta->idInmueble;
+
+            $pagare = $inmueble->pagares()->firstOrCreate(
                 [
                 'id_persona_acreedora' => $inmueble->idPropietarioReferente->id_persona,
                 'id_persona_deudora' => $renta->id_inquilino,
                 'fecha_pagare' => $fechaCreacionPagare,
                 'enum_estado' => 'PENDIENTE',
                 'enum_clasificacion_pagare' => 'RENTA',
-                //'id_tabla' => $renta->id,
                 ],        
                 [
                 'id_persona_acreedora' => $inmueble->idPropietarioReferente->id_persona,
                 'id_persona_deudora' => $renta->id_inquilino,
                 'monto' => $renta->monto,
                 'id_moneda' => $renta->id_moneda,
-                'fecha_pagare' => $fechaCreacionPagare,                      
+		'fecha_pagare' => $fechaCreacionPagare,                      
+		'fecha_vencimiento' => $fechaVencimiento,
                 'enum_estado' => 'PENDIENTE',
                 'enum_clasificacion_pagare' => 'RENTA',
                 'id_tabla' => $renta->id,
                 ]
-            );              
-        }
+            );
+
+	    if ($pagare->wasRecentlyCreated) {
+		    var_dump('recientemente creado');
+	        $inquilino = $renta->idInquilino;
+
+                $targetLabel = $inquilino->nombre_y_apellidos;
+                $targetType = $inquilino->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
+                $targetNumber = $inquilino->enum_tipo_persona === 'FISICA' ? $inquilino->ci : $inquilino->ruc;
+                $label = 'Pago de renta para el inquilino ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+                $summary = $label;
+
+                $items = [];
+                array_push(
+                    $items, [
+                        'label' => $label,
+                        'code' => $pagare->id,
+                        'amount' => [
+                            'currency' => 'PYG',
+                            'value' => $pagare->monto,
+                        ]
+                    ]
+                );
+	    
+	        $datosBoleta = [
+                    'amount' => [
+                        'currency' => 'PYG',
+                        'value' => $pagare->monto,
+                    ],
+                    'description' => [
+                        'items' => $items,
+                        'summary' => $summary,
+                        'text' => $summary,
+                    ],
+                    'docId' => $pagare->id,
+                    'label' => $label,
+                    'target' => [
+                        'label' => $targetLabel,
+                        'number' => $targetNumber,
+                        'type' => $targetType,
+                    ],
+                    'validPeriod' => [
+                        'end' => $fechaVencimiento->toAtomString(),
+                        'start' => $fechaCreacionPagare->toAtomString()
+                    ]
+                ];
+
+		$uc = new GenerarBoletaPago($datosBoleta);
+	        $boleta = $uc->handle();
+
+                $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare, $boleta));
+                $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare, $boleta));
+	    }
+	}
     }
 
     protected function generarComisionRenta(Renta $renta)

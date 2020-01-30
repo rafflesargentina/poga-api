@@ -4,32 +4,36 @@ namespace Raffles\Modules\Poga\Notifications;
 
 use Raffles\Modules\Poga\Models\Renta;
 
+use Gr8Shivam\SmsApi\Notifications\SmsApiChannel;
+use Gr8Shivam\SmsApi\Notifications\SmsApiMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class RentaCreadaInquilinoReferente extends Notification
+class RentaCreadaInquilinoReferente extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * The Renta model.
+     * The Renta model and the boleta de pago.
      *
      * @var Renta
      */
-    protected $renta;
+    protected $renta, $boleta;
 
     /**
      * Create a new notification instance.
      *
-     * @param Renta $renta The Renta model.
+     * @param Renta $renta  The Renta model.
+     * @param mixed $boleta Boleta de pago.
      *
      * @return void
      */
-    public function __construct(Renta $renta)
+    public function __construct(Renta $renta, $boleta)
     {
         $this->renta = $renta;
+        $this->boleta = $boleta;
     }
 
     /**
@@ -41,7 +45,7 @@ class RentaCreadaInquilinoReferente extends Notification
      */
     public function via($notifiable)
     {
-        return ['mail'];
+        return ['mail', SmsApiChannel::class];
     }
 
     /**
@@ -65,8 +69,9 @@ class RentaCreadaInquilinoReferente extends Notification
         return (new MailMessage)
             ->subject('Se te asignó un contrato de Renta')
             ->greeting('Hola '.$notifiable->idPersona->nombre)
-            ->line($line)
-            ->action('Ir a "Rentas"', url('/inmuebles/'.$inmueble->id_inmueble_padre.'/rentas'));
+	    ->line($line)
+            ->action('Ver Contrato', str_replace('api.', 'app.', url('/rentas/'.$this->renta->id)))
+	    ->markdown('poga::mail.renta-creada-para-inquilino', ['renta' => $this->renta, 'user' => $notifiable, 'boleta' => $this->boleta]);
     }
 
     /**
@@ -81,5 +86,20 @@ class RentaCreadaInquilinoReferente extends Notification
         return [
             //
         ];
+    }
+
+    public function toSmsApi($notifiable)
+    {
+	$boleta = $this->boleta;
+	$renta = $this->renta;
+	$propietario = $renta->idInmueble->idPropietarioReferente->idPersona;
+
+        if ($this->renta->vigente) {
+            return (new SmsApiMessage)
+                ->content('Fuiste asociado a un contrato de renta por '.$propietario->nombre.' '.$propietario->apellido.', ve mas detalles en '.str_replace('api.', 'app.', url('/rentas/'.$renta->id)));
+        } else {
+            return (new SmsApiMessage)
+                ->content('Fuiste asociado a un contrato de renta que genero unos pagos pendientes, conoce cuanto pagar en '.str_replace('api.', 'app.', url('/realiza-un-pago/'.$boleta['debt']['docId'])));
+        }   
     }
 }

@@ -119,10 +119,10 @@ class Renta extends Model
     /**
      * The estados inmueble that belong to the renta.
      */
-    public function estadosInmueble()
+    public function estados_inmueble()
     {
         return $this->belongsToMany(EstadoInmueble::class, 'estado_inmueble_renta', 'id_renta', 'id_estado_inmueble')
-            ->withPivot(['cantidad', 'enum_estado', 'reparar']);
+            ->withPivot(['cantidad', 'enum_estado', 'foto', 'reparar']);
     }
 
     /**

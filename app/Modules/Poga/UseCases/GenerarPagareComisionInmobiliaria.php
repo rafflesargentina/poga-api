@@ -71,20 +71,20 @@ class GenerarPagareComisionInmobiliaria
         if ($personaAdministradorReferente) {
             $userAdministradorReferente = $personaAdministradorReferente->idPersona->user;
             if ($userAdministradorReferente) {
-                $userAdministradorReferente->notify(new PagareCreadoAdministradorReferente($pagare));
+                //$userAdministradorReferente->notify(new PagareCreadoAdministradorReferente($pagare));
             }
         }
 
         $acreedor = $pagare->idPersonaAcreedora->user;
         // El acreedor es el propietario. Puede que no tenga usuario registrado.
         if ($acreedor) {
-            $acreedor->notify(new PagareCreadoPersonaAcreedora($pagare));
+            //$acreedor->notify(new PagareCreadoPersonaAcreedora($pagare));
         }
 
         $deudor = $pagare->idPersonaDeudora->user;
         // El deudor es el inquilino. Puede que no tenga usuario registrado.
         if ($deudor) {
-            $deudor->notify(new PagareCreadoPersonaDeudora($pagare));
+            //$deudor->notify(new PagareCreadoPersonaDeudora($pagare));
         }
 
         return $pagare;

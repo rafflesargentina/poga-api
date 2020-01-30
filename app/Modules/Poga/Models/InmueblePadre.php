@@ -2,10 +2,16 @@
 
 namespace Raffles\Modules\Poga\Models;
 
+use Raffles\Modules\Poga\Filters\InmueblePadreFilters;
+use Raffles\Modules\Poga\Sorters\InmueblePadreSorters;
+
 use Illuminate\Database\Eloquent\Model;
+use RafflesArgentina\FilterableSortable\FilterableSortableTrait;
 
 class InmueblePadre extends Model
 {
+    use FilterableSortableTrait;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -21,6 +27,10 @@ class InmueblePadre extends Model
         'monto_fondo_reserva',
         'nombre',
     ];
+
+    protected $filters = InmueblePadreFilters::class;
+
+    protected $sorters = InmueblePadreSorters::class;
 
     /**
      * The table associated with the model.

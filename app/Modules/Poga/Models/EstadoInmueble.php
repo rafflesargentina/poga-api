@@ -2,6 +2,8 @@
 
 namespace Raffles\Modules\Poga\Models;
 
+use Raffles\Models\FeaturedPhoto;
+
 use Illuminate\Database\Eloquent\Model;
 
 class EstadoInmueble extends Model

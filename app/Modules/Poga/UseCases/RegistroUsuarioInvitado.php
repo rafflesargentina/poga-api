@@ -88,12 +88,16 @@ class RegistroUsuarioInvitado
 
     /**
      * @param Persona $persona The Persona model.
+     *
+     * @return void
      */
     protected function crearCiudadesCobertura(Persona $persona)
     {
-        foreach ($this->data['id_persona']['ciudades_cobertura'] as $ciudadId) {
-            $persona->ciudades_cobertura()->create(['enum_estado' => 'ACTIVO', 'id_ciudad' => $ciudadId, 'role_id' => $persona->user->role_id]);
-        }
+	if (isset($this->data['id_persona']['ciudades_cobertura'])) {
+            foreach ($this->data['id_persona']['ciudades_cobertura'] as $ciudadId) {
+                $persona->ciudades_cobertura()->create(['enum_estado' => 'ACTIVO', 'id_ciudad' => $ciudadId, 'role_id' => $persona->user->role_id]);
+	    }
+	}
     }
 
     /**

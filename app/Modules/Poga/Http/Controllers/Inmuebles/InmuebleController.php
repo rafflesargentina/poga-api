@@ -32,7 +32,7 @@ class InmuebleController extends Controller
      */
     public function __construct(InmueblePadreRepository $repository)
     {
-        $this->middleware('auth:api');
+        $this->middleware('auth:api')->except('show');
 
         $this->repository = $repository;
     }
@@ -64,7 +64,7 @@ class InmuebleController extends Controller
             break;
 
         case 'MisInmuebles':
-            $map = $this->repository->findMisInmuebles($user);
+            $map = $this->repository->misInmuebles($request);
                 
             break;
 
@@ -131,7 +131,6 @@ class InmuebleController extends Controller
             'id_direccion.calle_principal' => 'required',
             'id_direccion.latitud' => 'sometimes|required',
             'id_direccion.longitud' => 'sometimes|required',
-            'id_direccion.numeracion' => 'required',
             'id_inmueble.id_tipo_inmueble' => 'required',
             'id_inmueble.solicitud_directa_inquilinos' => 'required',
             'modalidad_propiedad' => 'required_if:id_inmueble.id_tipo_inmueble,1',
@@ -172,9 +171,7 @@ class InmuebleController extends Controller
     public function show(Request $request, $id)
     {
         $model = $this->repository->findOrFail($id);
-        $model->loadMissing('idInmueble.caracteristicas', 'idInmueble.featured_photo', 'idInmueble.formatos', 'idInmueble.unfeatured_photos');
-
-        $this->authorize('view', $model->idInmueble);
+        $model->loadMissing('idInmueble.caracteristicas', 'idInmueble.documentos', 'idInmueble.featured_photo', 'idInmueble.formatos', 'idInmueble.idUsuarioCreador', 'idInmueble.unfeatured_photos');
 
         return $this->validSuccessJsonResponse('Success', $model);
     }
@@ -190,7 +187,7 @@ class InmuebleController extends Controller
     public function update(Request $request, $id)
     {
         $model = $this->repository->findOrFail($id);
-    
+
         if ($request->id_inmueble['id_tipo_inmueble'] !== '1') {
             $request->merge(['divisible_en_unidades' => 0]);
             $request->request->remove('unidades');
@@ -200,7 +197,7 @@ class InmuebleController extends Controller
         $user = $request->user('api');
         //$this->authorize('update', $model->idInmueble);
 
-        // Handle documents.
+        // Handle documentos.
         if ($request->documentos) {
             $request->validate(
                 [
@@ -208,10 +205,25 @@ class InmuebleController extends Controller
                 ]
             );
 
-                   $mergedRequest = $this->uploadFiles($request, $inmueble);
-                   $this->updateOrCreateRelations($mergedRequest, $inmueble);
+            $mergedRequest = $this->uploadFiles($request, $inmueble);
+            $this->updateOrCreateRelations($mergedRequest, $inmueble);
 
-                   return $this->validSuccessJsonResponse('Success');
+            return $this->validSuccessJsonResponse('Success');
+	}
+
+
+        // Handle featured photos.
+        if ($request->featured_photo) {
+            $request->validate(
+                [
+                'featured_photo[]' => 'image'
+                ]
+            );
+
+            $mergedRequest = $this->uploadFiles($request, $inmueble);
+            $this->updateOrCreateRelations($mergedRequest, $inmueble);
+
+            return $this->validSuccessJsonResponse('Success');
         }
 
         // Handle photos.

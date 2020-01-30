@@ -18,12 +18,12 @@ class InmueblePadreFilters extends BaseFilters
         $q = explode(',', $query ?: ',,,');
         return $this->builder->whereHas(
             'idDireccion', function ($direccion) use ($q) {
-                return $direccion->where('calle_principal', $q[0]);
+                $direccion->where('calle_principal', $q[0]);
         
                 if ($q[1]) {
-                    $direccion->whereBetween('numeracion', [(int($q[1]) - 100), (int($q[1]) + 100)]);
+                    $direccion->whereBetween('numeracion', [(intval($q[1]) - 100), (intval($q[1]) + 100)]);
                 } elseif($q[2]) {
-                    $direccon->where('calle_secundaria', $q[2]);
+                    $direccion->where('calle_secundaria', $q[2]);
                 } 
             }
         );

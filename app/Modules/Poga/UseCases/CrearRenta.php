@@ -4,13 +4,15 @@ namespace Raffles\Modules\Poga\UseCases;
 
 use Raffles\Modules\Poga\Models\User;
 use Raffles\Modules\Poga\Repositories\{ InmuebleRepository, PersonaRepository, RentaRepository, UnidadRepository };
-use Raffles\Modules\Poga\Notifications\{ RentaCreada, RentaCreadaPropietarioReferente, RentaCreadaInquilinoReferente };
+use Raffles\Modules\Poga\Notifications\{ RentaCreadaPropietarioReferente, RentaCreadaInquilinoReferente };
 
 use Illuminate\Foundation\Bus\DispatchesJobs;
+use RafflesArgentina\ResourceController\Traits\WorksWithFileUploads;
+use Storage;
 
 class CrearRenta
 {
-    use DispatchesJobs;
+    use DispatchesJobs, WorksWithFileUploads;
 
     /**
      * The form data and the User model.
@@ -47,11 +49,11 @@ class CrearRenta
         $data = $this->data;
 
         $inquilino = $rPersona->findOrFail($data['id_inquilino']);
-        if (!$inquilino->user) {
+        //if (!$inquilino->user) {
             $estado = 'ACTIVO';
-        } else {
-            $estado = 'PENDIENTE';
-        }
+        //} else {
+            //$estado = 'PENDIENTE';
+        //}
 
         $inmueble = $rInmueble->findOrFail($data['id_inmueble']);
 
@@ -76,35 +78,31 @@ class CrearRenta
 
         $this->adjuntarEstadosInmueble($renta);
 
-        // Si el inquilino no completó su registro.
-        if (!$inquilino->user) {
-            if (!$renta->vigente) {
-                $boletaComisionAdministrador = $this->dispatchNow(new GenerarComisionPrimerMesAdministrador($renta));
-                $boletaRenta = $this->dispatchNow(new GenerarPagareRentaPrimerMes($renta));
-            }
-        } else {
-            $boletaComisionAdministrador = null;
+        if (!$renta->vigente) {
+            $boletaComisionAdministrador = $this->dispatchNow(new GenerarComisionPrimerMesAdministrador($renta));
+            $boletaRenta = $this->dispatchNow(new GenerarPagareRentaPrimerMes($renta));
+	} else {
+	    $boletaComisionAdministrador = null;
             $boletaRenta = null;
+	}
 
-            // Notifica al inquilino.
-            $inquilino->user->notify(new RentaCreadaInquilinoReferente($renta));
-        }
+        $inquilino->user->notify(new RentaCreadaInquilinoReferente($renta, $boletaRenta));
 
-        $personaAdministradorReferente = $renta->idInmueble->idAdministradorReferente;
+        //$personaAdministradorReferente = $renta->idInmueble->idAdministradorReferente;
         // Notifica al administrador referente.
-        if ($personaAdministradorReferente) {
-            $userAdministradorReferente = $personaAdministradorReferente->idPersona->user;
-            if ($userAdministradorReferente) {
-                $userAdministradorReferente->notify(new RentaCreada($renta));
-            }
-        }
+        //if ($personaAdministradorReferente) {
+            //$userAdministradorReferente = $personaAdministradorReferente->idPersona->user;
+            //if ($userAdministradorReferente) {
+                //$userAdministradorReferente->notify(new RentaCreadaAdministradorReferente($renta, $boletaRenta));
+            //}
+        //}
 
         $personaPropietarioReferente = $renta->idInmueble->idPropietarioReferente;
         // Notifica al propietario referente.
         if ($personaPropietarioReferente) {
             $userPropietarioReferente = $personaPropietarioReferente->idPersona->user;
             if ($userPropietarioReferente) {
-                $userPropietarioReferente->notify(new RentaCreadaPropietarioReferente($renta));
+                $userPropietarioReferente->notify(new RentaCreadaPropietarioReferente($renta, $boletaRenta));
             }
         }
 
@@ -121,8 +119,23 @@ class CrearRenta
     protected function adjuntarEstadosInmueble($renta)
     {
         $estadosInmueble = $this->data['estados_inmueble'];
-        foreach ($estadosInmueble as $estadoInmueble) {
-            $renta->estadosInmueble()->attach($estadoInmueble['id'], ['cantidad' => $estadoInmueble['cantidad'], 'enum_estado' => 'ACTIVO', 'reparar' => $estadoInmueble['reparar']]);
+	foreach ($estadosInmueble as $estadoInmueble) {
+	    if ($estadoInmueble['foto']) {
+                $image = $estadoInmueble['foto'];
+                $imageInfo = explode(";base64,", $image);
+                $imageExt = str_replace('data:image/', '', $imageInfo[0]);
+		$image = str_replace(' ', '+', $imageInfo[1]);
+		$imageName = "estado-inmueble-".$estadoInmueble['id'].'-'.time().".".$imageExt;
+
+		$relativePath = $this->getDefaultRelativePath();
+		$storagePath = $this->getStoragePath($relativePath);
+		$uploadedFile = $relativePath.$imageName;
+                Storage::put($uploadedFile, base64_decode($image));
+            } else {
+                $uploadedFile = null;
+	    }
+
+	    $renta->estados_inmueble()->attach($estadoInmueble['id'], ['cantidad' => $estadoInmueble['cantidad'], 'enum_estado' => 'ACTIVO', 'reparar' => $estadoInmueble['reparar'], 'foto' => $uploadedFile]);
         }
     }
 }

@@ -6,3 +6,4 @@
 /usr/bin/find ./bootstrap/cache -type f -exec chmod 664 {} \;
 
 setfacl -m group:www-data:rwx ./storage/logs
+setfacl -m user:www-data:rwx ./storage/logs

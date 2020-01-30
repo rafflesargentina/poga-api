@@ -8,11 +8,11 @@ use Raffles\Modules\Poga\UseCases\{ ActualizarUnidad, BorrarUnidad, CrearUnidad 
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use RafflesArgentina\ResourceController\Traits\FormatsValidJsonResponses;
+use RafflesArgentina\ResourceController\Traits\{ FormatsValidJsonResponses, WorksWithFileUploads, WorksWithRelations };
 
 class UnidadController extends Controller
 {
-    use FormatsValidJsonResponses;
+    use FormatsValidJsonResponses, WorksWithFileUploads, WorksWithRelations;
 
     /**
      * Create a new UnidadController instance.
@@ -23,7 +23,7 @@ class UnidadController extends Controller
      */
     public function __construct(UnidadRepository $repository)
     {
-        $this->middleware('auth:api');
+        $this->middleware('auth:api')->except('show');
 
         $this->repository = $repository;
     }
@@ -134,8 +134,7 @@ class UnidadController extends Controller
     public function show(Request $request, $id)
     {
         $model = $this->repository->findOrFail($id);
-
-        $model->loadMissing('idInmueble.caracteristicas', 'idInmueble.formatos');
+        $model->loadMissing('idInmueble.caracteristicas', 'idInmueble.formatos', 'idInmueblePadre.idInmueble.caracteristicas', 'idInmueblePadre.idInmueble.formatos');
 
         return $this->validSuccessJsonResponse('Success', $model);
     }
@@ -151,23 +150,52 @@ class UnidadController extends Controller
     public function update(Request $request, $id)
     {
         $model = $this->repository->findOrFail($id);
-        $inmueblePadre = $model->idInmueblePadre;
+	$inmueble = $model->idInmueble;
+	$inmueblePadre = $model->idInmueblePadre;
+
+        // Handle featured_photo.
+        if ($request->featured_photo) {
+            $request->validate(
+                [
+                'featured_photo[]' => 'image'
+                ]
+            );
+
+            $mergedRequest = $this->uploadFiles($request, $inmueble);
+            $this->updateOrCreateRelations($mergedRequest, $inmueble);
+
+            return $this->validSuccessJsonResponse('Success');
+        }
+
+        // Handle unfeatured_photos.
+        if ($request->unfeatured_photos) {
+            $request->validate(
+                [
+                'unfeatured_photos[]' => 'image'
+                ]
+            );
+
+            $mergedRequest = $this->uploadFiles($request, $inmueble);
+            $this->updateOrCreateRelations($mergedRequest, $inmueble);
+
+            return $this->validSuccessJsonResponse('Success');
+        }
 
         $request->validate(
             [
             'caracteristicas' => 'array',
-            'idInmueble.solicitud_directa_inquilinos' => 'required',
-            'idPropietarioReferente' => Rule::requiredIf(
-                function () use ($inmueblePadre) {
-                    // Requerido sólo cuando la modalidad del inmueble padre es EN_CONDOMINIO.
-                    return $inmueblePadre->modalidad_propiedad === 'EN_CONDOMINIO';
-                }
-            ),
-            'unidad.area_estacionamiento' => 'numeric',
-            'unidad.area' => 'required',
-            'unidad.id_formato_inmueble' => 'required',
-            'unidad.numero' => 'required',
-            'unidad.piso' => 'required',
+            'idInmueble.solicitud_directa_inquilinos' => 'sometimes|required',
+            //'idPropietarioReferente' => Rule::requiredIf(
+                //function () use ($inmueblePadre) {
+                    //// Requerido sólo cuando la modalidad del inmueble padre es EN_CONDOMINIO.
+                    //return $inmueblePadre->modalidad_propiedad === 'EN_CONDOMINIO';
+                //}
+            //),
+            'area_estacionamiento' => 'sometimes|required|numeric',
+            'area' => 'required',
+            'id_formato_inmueble' => 'required',
+            'numero' => 'required',
+            'piso' => 'required',
             ]
         );
 

@@ -34,16 +34,17 @@ class CreatePagaresTable extends Migration
                 $table->unsignedInteger('id_factura')->nullable();
                 $table->foreign('id_factura')->references('id')->on('facturas')->nullable();
                 $table->enum('enum_estado', ['A_CONFIRMAR_POR_ADMIN','ANULADO','PAGADO','PENDIENTE','TRANSFERIDO']);
-                $table->enum('enum_clasificacion_pagare', ['COMISION_INMOBILIARIA','COMISION_RENTA_ADMIN','COMISION_RENTA_PRIM_ADMIN','DEPOSITO_GARANTIA','EXPENSA','MULTA_RENTA','OTRO','RENTA','SALARIO_ADMINISTRADOR','SALARIO_CONSERJE','SOLICITUD','DISTRIBUIDO_EXPENSA']);
+                $table->enum('enum_clasificacion_pagare', ['COMISION_INMOBILIARIA','COMISION_POGA','COMISION_RENTA_ADMIN','COMISION_RENTA_PRIM_ADMIN','DEPOSITO_GARANTIA','EXPENSA','MULTA_RENTA','OTRO','RENTA','SALARIO_ADMINISTRADOR','SALARIO_CONSERJE','SOLICITUD','DISTRIBUIDO_EXPENSA']);
                 $table->unsignedInteger('id_tabla')->nullable();
                 $table->unsignedInteger('id_distribucion_expensa')->nullable();
                 $table->foreign('id_distribucion_expensa')->references('id')->on('distribuciones_expensas');
                 $table->unsignedInteger('id_tipo_pagare')->nullable();
                 $table->foreign('id_tipo_pagare')->references('id')->on('tipos_pagare');
-                $table->string('description', 30)->nullable();
+                $table->string('descripcion', 30)->nullable();
                 $table->tinyInteger('mes_a_pagar')->nullable();
                 $table->string('pagado_con_fondos_de', 15)->nullable();
-                $table->unsignedInteger('nro_comprobante')->nullable();
+		$table->unsignedInteger('nro_comprobante')->nullable();
+		$table->boolean('revertido')->nullable()->default(0);
                 $table->timestamps();
             }
         );

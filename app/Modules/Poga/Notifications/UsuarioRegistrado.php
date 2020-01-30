@@ -9,21 +9,21 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class UsuarioRegistrado extends Notification
+class UsuarioRegistrado extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * The Inmueble and User models.
+     * The User model.
      *
-     * @var User     $user
+     * @var User $user
      */
     protected $user;
 
     /**
      * Create a new notification instance.
      *
-     * @param User $user The User model.
+     * @param  User $user The User model.
      *
      * @return void
      */
@@ -51,11 +51,25 @@ class UsuarioRegistrado extends Notification
      */
     public function toMail($notifiable)
     {
+        switch ($notifiable->role_id) {
+        case 4:
+            $action = str_replace('.api', '', url('/inmuebles/crear'));
+            $line2 = 'Completá tu registro antes de publicar tu primer inmueble.';
+        break;
+        case 3:
+            $action = str_replace('.api', '', url('/cuenta'));
+            $line2 = 'Accedé a tu portal:';
+        break;
+        default:
+            $action = str_replace('.api', '', url('/cuenta'));
+            $line2 = '';
+	}
+
         return (new MailMessage)
-            ->subject('Fuiste registrado en POGA')
+            ->subject('Gracias por registrarte en POGA')
             ->greeting('Hola '.$this->user->idPersona->nombre)
-            ->line('Fuiste registrado en POGA')
-            ->action('Ir a "Login"', url('/'));
+            ->line($line2)
+            ->action('Completa tu registro ahora', str_replace('.api', '', url('/completa-tu-registro')));
     }
 
     /**

@@ -9,12 +9,12 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class RentaFinalizada extends Notification
+class RentaPorFinalizarParaAdminPoga extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
-     * The Renta model.
+     * The Renta model;
      *
      * @var Renta
      */
@@ -23,7 +23,7 @@ class RentaFinalizada extends Notification
     /**
      * Create a new notification instance.
      *
-     * @param Renta $renta The Renta model.
+     * @param Renta $renta  The Renta model.
      *
      * @return void
      */
@@ -53,19 +53,26 @@ class RentaFinalizada extends Notification
      */
     public function toMail($notifiable)
     {
-        $inmueble = $this->renta->idInmueble;
+	$renta = $this->renta;
+        $inmueble = $renta->idInmueble;
+        $unidad = $renta->idUnidad;
 
-        if ($inmueble->enum_tabla_hija === 'INMUEBLES_PADRE') {
-            $line = 'El contrato de renta para el inmueble: "'.$inmueble->idInmueblePadre->nombre.'" ha finalizado.';
+        if ($unidad) {
+            $line = 'El contrato de renta para el '.$unidad->tipo.' '.$unidad->piso.' nº '.$unidad->numero.' del Inmueble "'.$unidad->idInmueblePadre->nombre.'" está por vencer en '.$renta->dias_notificacion_previa_renovacion.' días. Coordina con tu inquilino la finalización o renovación.';
         } else {
-            $line = 'El contrato de renta para la unidad: "Piso: '.$inmueble->piso.' - Número: '.$inmueble->numero.'" ha finalizado.';
+            $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'" está por vencer en '.$this->renta->dias_notificacion_previa_renovacion.' días. Coordina con tu inquilino la finalización o renovación.';
         }
 
+	$line2 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
+        $line3 = 'Inquilino: '.$renta->idInquilino->nombre_y_apellidos;
+
         return (new MailMessage)
-            ->subject('Contrato de renta finalizado')
+            ->subject('Tu contrato de Renta próximo a vencer')
             ->greeting('Hola '.$notifiable->idPersona->nombre)
-            ->line($line)
-            ->action('Ir a "Rentas"', url('/inmuebles/'.$inmueble->id_inmueble_padre.'/rentas'));
+	    ->line($line)
+	    ->line($line2)
+	    ->line($line3)
+	    ->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
     }
 
     /**

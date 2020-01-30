@@ -5,6 +5,7 @@ namespace Raffles\Modules\Poga\Repositories;
 use Raffles\Modules\Poga\Models\{ InmueblePadre, User };
 
 use Caffeinated\Repository\Repositories\EloquentRepository;
+use Illuminate\Http\Request;
 
 class InmueblePadreRepository extends EloquentRepository
 {
@@ -40,6 +41,103 @@ class InmueblePadreRepository extends EloquentRepository
         return $this->map($items);
     }
 
+
+    public function misInmuebles(Request $request)
+    {
+	$user = $request->user();
+
+        $rPagare = new PagareRepository;
+
+	$items = $this->filter()->sort()
+	    ->with(['idInmueble.pagares' => function($query) {
+		    return $query->where('enum_estado', 'PAGADO')->whereIn('enum_clasificacion_pagare', ['RENTA','OTRO']);
+	    }])
+	    ->whereHas(
+            'idInmueble', function ($query) use ($user) {
+                switch ($user->role_id) {
+                case 5:
+                return $query->whereHas(
+                'idProveedorReferente', function ($q) use ($user) {
+                            $q->where('id_persona', $user->id_persona);
+                }
+                );
+                break;
+                case 4:
+                    return $query->whereHas(
+                        'idPropietarioReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+		    );
+                    break;
+                case 3:
+                    return $query->whereHas(
+                        'idInquilinoReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+                    );
+                    break;
+                case 2:
+                    return $query->whereHas(
+                        'idConserjeReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+                    );
+                break;
+                case 1:
+                    return $query->whereHas(
+                        'idAdministradorReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+                    );
+                    break;
+                } 
+            }
+        )
+        ->orWhereHas(
+            'unidades.idInmueble', function ($query) use ($user) {
+                switch ($user->role_id) {
+                case 5:
+                    return $query->whereHas(
+                        'idProveedorReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+                    );
+                    break;
+                case 4:
+                    return $query->whereHas(
+                        'idPropietarioReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+                    );
+                break;
+                case 3:
+                    return $query->whereHas(
+                        'idInquilinoReferente', function ($q) use ($user) {
+                            return $q->where('id_persona', $user->id_persona);
+                        }
+                    );
+                break;
+                case 2:
+                return $query->whereHas(
+                    'idConserjeReferente', function ($q) use ($user) {
+                         return $q->where('id_persona', $user->id_persona);
+                    }
+                );
+                break;
+                case 1:
+                return $query->whereHas(
+                    'idAdministradorReferente', function ($q) use ($user) {
+                        return $q->where('id_persona', $user->id_persona);
+                    }
+                );
+                break;
+                }
+            }
+        )->get();
+	    
+        return $this->map($items);
+    }
+
     /**
      * Find: Mis Inmuebles.
      *
@@ -51,7 +149,7 @@ class InmueblePadreRepository extends EloquentRepository
     {
         $user->idPersona->inmuebles->loadMissing('unidades');
 
-        $items = $this->whereHas(
+        $items = $this->filter()->sort()->whereHas(
             'idInmueble', function ($query) use ($user) {
                 $query->where('inmuebles.enum_estado', 'ACTIVO')->whereHas(
                     'personas', function ($q) use ($user) {
@@ -108,7 +206,7 @@ class InmueblePadreRepository extends EloquentRepository
      */
     public function findTodos()
     {
-        $items = $this->with('unidades')->get();
+        $items = $this->filter()->sort()->with('unidades', 'idInmueble.caracteristicas', 'idInmueble.documentos')->get();
 
         return $this->map($items);
     }
@@ -129,9 +227,11 @@ class InmueblePadreRepository extends EloquentRepository
                 return [
                 'cant_pisos' => $item->cant_pisos,
                 'cant_unidades' => $item->unidades->count(),
+                'descripcion' => $inmueble->descripcion,
                 'direccion' => $inmueble->direccion,
                 'divisible_en_unidades' => $item->divisible_en_unidades,
                 'formatos' => $item->idInmueble->formatos,
+                'fotos' => $inmueble->unfeatured_photos,
                 'id' => $item->id,
                 'id_inmueble' => $inmueble,
                 'id_usuario_creador' => $inmueble->id_usuario_creador,

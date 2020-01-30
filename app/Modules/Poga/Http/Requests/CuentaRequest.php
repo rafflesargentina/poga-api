@@ -47,8 +47,9 @@ class CuentaRequest extends FormRequest
             'id_persona.ruc' => [
                 'required_if:id_persona.enum_tipo_persona,JURIDICA',
                 Rule::unique('personas', 'ruc')->where(function($query) {
-                    $query->where('enum_estado', 'ACTIVO');
-                }),
+		    $query->whereNotNull('ruc');	
+		    $query->where('enum_estado', 'ACTIVO');
+                })->ignore($user->id),
             ],    
             'id_persona.telefono_celular' => 'required',
             'id_persona.titular_cuenta' => 'required_if:role_id,4',

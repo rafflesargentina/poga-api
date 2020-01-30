@@ -19,7 +19,8 @@ class CreatePersonasTable extends Migration
                 $table->string('nombre', 25);
                 $table->string('apellido', 25)->nullable();
                 $table->enum('enum_tipo_persona', ['FISICA','JURIDICA']);
-                $table->string('telefono', 20)->nullable();
+		$table->string('telefono', 30)->nullable();
+		$table->string('telefono_celular', 30)->nullable();
                 $table->string('direccion')->nullable();
                 $table->string('direccion_facturacion')->nullable();
                 $table->date('fecha_nacimiento')->nullable();

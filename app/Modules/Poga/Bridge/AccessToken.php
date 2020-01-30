@@ -33,11 +33,11 @@ class AccessToken extends \Laravel\Passport\Bridge\AccessToken
         if ($user = User::find($this->getUserIdentifier())) {
             $fields = [
                 'nombre' => $user->first_name ?: $user->idPersona->nombre,
-            'apellido' => $user->last_name ?: $user->idPersona->apellido,
-            'email' => $user->email,
-            'ci' => $user->idPersona->ci,
-            'ruc' => $user->idPersona->ruc,
-            'telefono' => $user->idPersona->telefono,
+                'apellido' => $user->last_name ?: $user->idPersona->apellido,
+                'email' => $user->email,
+                'ci' => $user->idPersona->ci,
+                'ruc' => $user->idPersona->ruc,
+                'telefono' => $user->idPersona->telefono,
             ];
 
             $builder->withClaim('user', $fields);

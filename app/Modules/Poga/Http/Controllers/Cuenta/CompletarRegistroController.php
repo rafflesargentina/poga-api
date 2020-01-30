@@ -22,7 +22,8 @@ class CompletarRegistroController extends ActualizarCuentaController
     {
         parent::__invoke($request);
 
-        $user = $request->user('api');
+	$user = $request->user('api');
+	$user->refresh();
 
         $user->notify(new RegistroCompletado($user));
         Mail::to(env('MAIL_ADMIN_ADDRESS'))->send(new RegistroCompletadoParaAdminPoga($user));

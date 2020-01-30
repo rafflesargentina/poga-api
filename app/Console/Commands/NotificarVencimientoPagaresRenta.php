@@ -4,9 +4,9 @@ namespace Raffles\Console\Commands;
 
 use Raffles\Modules\Poga\Notifications\{ PagareRentaPorVencerDeudor, PagareRentaPorVencerAcreedor };
 use Raffles\Modules\Poga\Repositories\PagareRepository;
+use Raffles\Modules\Poga\UseCases\TraerBoletaPago;
 
 use Carbon\Carbon;
-use GuzzleHttp\Client;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 
@@ -36,15 +36,6 @@ class NotificarVencimientoPagaresRenta extends Command
     public function __construct()
     {
         parent::__construct();
-
-        $this->client = new Client(
-            [
-            'headers' => [
-                'apiKey' => env('DEBTS_API_KEY'),
-                'Content-Type' => 'application/json'
-            ]
-            ]
-        );
     }
 
     /**
@@ -65,9 +56,8 @@ class NotificarVencimientoPagaresRenta extends Command
             $diasDesdeHoy = $now->copy()->addDays(2)->toDateString();
 
             if ($diasDesdeHoy === $vencimiento) {
-                $response = $this->client->get('https://poga-test.base97.com/api/v1/debts/'.$pagarePendiente->id);
-
-                $boleta = json_decode($response->getBody(), true);
+                $uc = new TraerBoletaPago($pagarePendiente->id);
+                $boleta = $uc->handle();
 
                 $deudor->notify(new PagareRentaPorVencerDeudor($pagarePendiente, $boleta));
                 $acreedor->notify(new PagareRentaPorVencerAcreedor($pagarePendiente, $boleta));
