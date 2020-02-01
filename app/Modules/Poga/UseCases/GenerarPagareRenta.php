@@ -39,12 +39,13 @@ class GenerarPagareRenta
      */
     public function handle(PagareRepository $repository)
     {
+        $renta = $this->renta;
+
         $now = Carbon::now();
-	$renta = $this->renta;
         $startOfMonth = $now->copy()->startOfMonth();
 
         $fechaInicio = $renta->fecha_inicio;
-        $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicio->day, 0, 0, 0);
+	$fechaCreacionPagare = $now;
 	$fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
 
         $inquilino = $renta->idInquilino;
