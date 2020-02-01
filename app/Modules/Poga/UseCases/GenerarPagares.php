@@ -27,53 +27,40 @@ class GenerarPagares implements ShouldQueue
         $rentas = $repository->findWhere(['enum_estado' => 'ACTIVO']);
 
         foreach($rentas as $renta) {
-            $this->generarPagoRenta($renta);
-            //$this->generarPagoConserje($renta);
-            //$this->generarPagoAdministrador($renta);
+            $this->generarPagareRenta($renta);
         }
     }
 
-    public function generarPagoRenta(Renta $renta)
+    public function generarPagareRenta(Renta $renta)
     {
         $now = Carbon::now();
+        $endOfMonth = $now->copy()->endOfMonth();
         $startOfMonth = $now->copy()->startOfMonth();
 
         if ($renta->created_at->format('m') !== $now->format('m')) {
-            $fechaInicioRenta = $renta->fecha_inicio;
-	    $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicioRenta->day, 0, 0, 0);
+            $fechaCreacionPagare = $now;
             $fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
 
-            // En el raro caso que el job corra luego de la fecha del pagaré.
-            if ($fechaVencimiento->toDateString() < $now->toDateString()) {
-                $fechaVencimiento = $now->copy()->addDays(10);
-            }
+            $inmueble = $renta->idInmueble;
 
-	    $inmueble = $renta->idInmueble;
+            $pagare = $inmueble->pagares()->where('id_persona_acreedora', $inmueble->idPropietarioReferente->id_persona)->where('id_persona_deudora', $renta->id_inquilino)->whereBetween('fecha_pagare', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])->where('enum_clasificacion_pagare', 'RENTA')->where('id_tabla', $renta->id)->first();
 
-            $pagare = $inmueble->pagares()->firstOrCreate(
-                [
-                'id_persona_acreedora' => $inmueble->idPropietarioReferente->id_persona,
-                'id_persona_deudora' => $renta->id_inquilino,
-                'fecha_pagare' => $fechaCreacionPagare,
-                'enum_estado' => 'PENDIENTE',
-                'enum_clasificacion_pagare' => 'RENTA',
-                ],        
-                [
-                'id_persona_acreedora' => $inmueble->idPropietarioReferente->id_persona,
-                'id_persona_deudora' => $renta->id_inquilino,
-                'monto' => $renta->monto,
-                'id_moneda' => $renta->id_moneda,
-		'fecha_pagare' => $fechaCreacionPagare,                      
-		'fecha_vencimiento' => $fechaVencimiento,
-                'enum_estado' => 'PENDIENTE',
-                'enum_clasificacion_pagare' => 'RENTA',
-                'id_tabla' => $renta->id,
-                ]
-            );
+            if (!$pagare) {
+                $pagare = $inmueble->pagares()->create([
+                    'enum_clasificacion_pagare' => 'RENTA',
+                    'enum_estado' => 'PENDIENTE',
+                    'fecha_pagare' => $fechaCreacionPagare->toDateString(),
+                    'fecha_vencimiento' => $fechaVencimiento,
+                    'id_moneda' => $renta->id_moneda,
+                    'id_persona_acreedora' => $inmueble->idPropietarioReferente->id_persona,
+                    'id_persona_deudora' => $renta->id_inquilino,
+                    'id_tabla' => $renta->id,
+                    'monto' => $renta->monto,
+                ]);
 
-	    if ($pagare->wasRecentlyCreated) {
-		    var_dump('recientemente creado');
-	        $inquilino = $renta->idInquilino;
+                \Log::info('GenerarPagares: Pagare creado id '.$pagare->id);
+
+                $inquilino = $renta->idInquilino;
 
                 $targetLabel = $inquilino->nombre_y_apellidos;
                 $targetType = $inquilino->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
@@ -92,8 +79,8 @@ class GenerarPagares implements ShouldQueue
                         ]
                     ]
                 );
-	    
-	        $datosBoleta = [
+        
+                $datosBoleta = [
                     'amount' => [
                         'currency' => 'PYG',
                         'value' => $pagare->monto,
@@ -116,69 +103,12 @@ class GenerarPagares implements ShouldQueue
                     ]
                 ];
 
-		$uc = new GenerarBoletaPago($datosBoleta);
-	        $boleta = $uc->handle();
+                $uc = new GenerarBoletaPago($datosBoleta);
+                $boleta = $uc->handle();
 
                 $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare, $boleta));
                 $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare, $boleta));
-	    }
-	}
+            }
+        }
     }
-
-    protected function generarComisionRenta(Renta $renta)
-    {
-   
-        $now = Carbon::now()->startOfDay();              
-        $comision = $renta->comision_administrador * $renta->monto / 100;
-        //Si está pasado el proporcional de los dias del mes
-
-        $pagare = $inmueble->pagares()->updateOrCreate(
-            [
-            'id_persona_acreedora' => $renta->idInmueble->idAdministradorReferente->id_persona,
-            'id_persona_deudora' => $renta->idInmueble->idPropietarioReferente->id_persona,
-            'monto' => $comision, 
-            'id_moneda' => $renta->id_moneda,
-            'fecha_pagare' => $fechaCreacionPagare,                      
-            'enum_estado' => 'PENDIENTE',
-            'enum_clasificacion_pagare' => 'COMISION_RENTA_ADMIN',
-            'id_tabla_hija' => $renta->id,
-            ]
-        );       
-    }
-
-    //public function generarPagoConserje(Renta $renta){
-
-        //$now = $now = Carbon::now()->startOfDay();              
-        //$fechaInicioRenta = Carbon::createFromFormat('Y-m-d', $renta->fecha_inicio);  
-        //$fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicioRenta->day, 0, 0, 0);
-
-        //$pagare = $inmueble->pagares()->create([
-            //'id_persona_acreedora' => $renta->idInmueble->idAdministradorReferente()->first()->id,
-            //'monto' => $comision, 
-            //'id_moneda' => $renta->id_moneda,
-            //'fecha_pagare' => $fechaCreacionPagare,                      
-            //'enum_estado' => 'PENDIENTE',
-            //'enum_clasificacion_pagare' => 'SALARIO_CONSERJE',
-            //'id_tabla_hija' => $renta->id,
-        //]);     
-
-    //}
-
-    //public function generarPagoAdministrador(Renta $renta)
-    //{
-        //$now = $now = Carbon::now()->startOfDay();              
-        //$fechaInicioRenta = Carbon::createFromFormat('Y-m-d', $renta->fecha_inicio);  
-    //$fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicioRenta->day, 0, 0, 0);
-    //$comision = $renta->comision_administrador * $renta->monto / 100;
-
-        //$pagare = $renta->idInmueble->pagares()->create([
-            //'id_persona_acreedora' => $renta->idInmueble->idAdministradorReferente()->first()->id,
-            //'monto' => $comision, 
-            //'id_moneda' => $renta->id_moneda,
-            //'fecha_pagare' => $fechaCreacionPagare,                      
-            //'enum_estado' => 'PENDIENTE',
-            //'enum_clasificacion_pagare' => 'SALARIO_ADMINISTRADOR',
-            //'id_tabla_hija' => $renta->id,
-        //]);
-    //}
 }
