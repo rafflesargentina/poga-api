@@ -35,15 +35,14 @@ class GenerarMultas implements ShouldQueue
 	$pagaresVencidos = collect();
 
         foreach($rentasActivas as $renta) {
-	    $fechaLimite = $now->startOfMonth()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1)->toDateString();
-            $fechaInicioRenta = $renta->fecha_inicio;
+	    $fechaInicioRenta = $renta->fecha_inicio;
 
 	    $inmueble = $renta->idInmueble;
 
 	    $inmueble->pagares()
                 ->where('enum_clasificacion_pagare', 'RENTA')
                 ->where('enum_estado', 'PENDIENTE')
-		->where('fecha_vencimiento', '>', $fechaLimite)
+		->where('fecha_vencimiento', '<', $now->toDateString())
 		->get()
 	        ->each(function($item) use($pagaresVencidos) {
                     $pagaresVencidos->push($item);
@@ -70,15 +69,7 @@ class GenerarMultas implements ShouldQueue
 	    $label = 'Pago de renta para el inquilino '.$targetNumber.' '.$targetLabel.', mes '.Carbon::parse($pagareVencido->fecha_pagare)->format('m/Y');
             $summary = $label.', con multa por atraso.';
 
-            $pagareVencido->idPersonaAcreedora->user->notify(new PagareRentaVencidoAcreedor($pagareVencido, $boleta));
-	    $pagareVencido->idPersonaDeudora->user->notify(new PagareRentaVencidoDeudor($pagareVencido, $boleta));
-	    
-	    $admin = User::where('email', env('EMAIL_ADMIN_ADDRESS'))->first();
-	    if ($admin) {
-                $admin->notify(new PagareRentaVencidoParaAdminPoga($pagareVencido, $boleta));
-	    }
-
-            $inicioMes = $now->startOfMonth()->toDateString();
+            $inicioMes = $now->copy()->startOfMonth()->toDateString();
                 
             $pagareMulta = $inmueble->pagares()
                 ->where('enum_estado', 'PENDIENTE')
@@ -88,6 +79,15 @@ class GenerarMultas implements ShouldQueue
 		->first();
 
 	    if(!$pagareMulta) {
+                // Notifica solamente la primer vez que genera pagare de multa.
+                $pagareVencido->idPersonaAcreedora->user->notify(new PagareRentaVencidoAcreedor($pagareVencido, $boleta));
+                $pagareVencido->idPersonaDeudora->user->notify(new PagareRentaVencidoDeudor($pagareVencido, $boleta));
+
+                $admin = User::where('email', env('EMAIL_ADMIN_ADDRESS'))->first();
+                if ($admin) {
+                    $admin->notify(new PagareRentaVencidoParaAdminPoga($pagareVencido, $boleta));
+                }
+
                 $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicioRenta->day, 0, 0, 0);
 		    
 		$monto = $renta->monto_multa_dia;
@@ -122,12 +122,13 @@ class GenerarMultas implements ShouldQueue
                     array_push($data['debt']['description']['items'], $itemMulta);
 		    $data['debt']['amount']['value'] = $boleta['debt']['amount']['value'] + $monto;
 
-		    $debt = ['debt' => Arr::only($data['debt'], ['amount', 'description'])];
+		    $debt = ['debt' => Arr::only($data['debt'], ['amount', 'description', 'validPeriod'])];
 
                     $debt['debt']['description']['summary'] = $summary;
 		    $debt['debt']['description']['text'] = $summary;
-                    $debt['debt']['label'] = $label;
-\Log::info($debt);
+		    $debt['debt']['label'] = $label;
+		    $debt['debt']['validPeriod']['start'] = $data['debt']['validPeriod']['start'];
+		    $debt['debt']['validPeriod']['end'] = $now->toAtomString();
 
 		    $uc = new ActualizarBoletaPago($pagareVencido->id, $debt);
 		    $boleta = $uc->handle();
@@ -150,11 +151,13 @@ class GenerarMultas implements ShouldQueue
 			$data['debt']['amount']['value'] = $boleta['debt']['amount']['value'] + $renta->monto_multa_dia;
 			$data['debt']['description']['items'][$itemExistente]['amount']['value'] = $monto;
 
-			$debt = ['debt' => Arr::only($data['debt'], ['amount', 'description'])];
+			$debt = ['debt' => Arr::only($data['debt'], ['amount', 'description', 'validPeriod'])];
 
                         $debt['debt']['description']['summary'] = $summary;
 			$debt['debt']['description']['text'] = $summary;
-                        $debt['debt']['label'] = $label;
+			$debt['debt']['label'] = $label;
+                        $debt['debt']['validPeriod']['start'] = $data['debt']['validPeriod']['start'];
+			$debt['debt']['validPeriod']['end'] = $now->toAtomString();
 		    } else {
 			$itemMulta = [
                             'label' => 'Multa por atraso',
@@ -168,11 +171,13 @@ class GenerarMultas implements ShouldQueue
 			array_push($data['debt']['description']['items'], $itemMulta);
 			$data['debt']['amount']['value'] = $boleta['debt']['amount']['value'] + $monto;
 
-			$debt = ['debt' => Arr::only($data['debt'], ['amount', 'description'])];
+			$debt = ['debt' => Arr::only($data['debt'], ['amount', 'description', 'validPeriod'])];
 
                         $debt['debt']['description']['summary'] = $summary;
 			$debt['debt']['description']['text'] = $summary;
-                        $debt['debt']['label'] = $summary;
+			$debt['debt']['label'] = $summary;
+                        $debt['debt']['validPeriod']['start'] = $data['debt']['validPeriod']['start'];
+			$debt['debt']['validPeriod']['end'] = $now->toAtomString();
 		    }
 
                     $uc = new ActualizarBoletaPago($pagareVencido->id, $debt);
