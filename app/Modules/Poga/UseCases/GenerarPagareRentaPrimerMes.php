@@ -39,27 +39,23 @@ class GenerarPagareRentaPrimerMes
      */
     public function handle(PagareRepository $repository)
     {
-        $now = Carbon::now();
         $renta = $this->renta;
+        $inmueble = $renta->idInmueble;
+
+        $now = Carbon::now();
         $startOfMonth = $now->copy()->startOfMonth();
 
         $fechaInicio = $renta->fecha_inicio;
-        $fechaCreacionPagare = Carbon::create($now->year, $now->month, $fechaInicio->day, 0, 0, 0);
-        $fechaVencimiento = $now->copy()->addDays(10);
+        $fechaCreacionPagare = $now;
+        $fechaVencimiento = $fechaInicio->copy()->addDays(10);
 
         $primerDiaPeriodo = $startOfMonth->copy()->addDays($renta->dia_mes_pago)->subDay();
         $ultimoDiaPeriodo = $primerDiaPeriodo->copy()->addMonth()->subDay();
-        $cantDiasPeriodo = $ultimoDiaPeriodo->diffInDays($primerDiaPeriodo);
+        $cantDiasPeriodo = $ultimoDiaPeriodo->diffInDays($primerDiaPeriodo) + 1;
 
-        $inmueble = $renta->idInmueble;
+        $offset = $fechaInicio->diffInDays($ultimoDiaPeriodo) + 1;
 
-        if ($now->toDateString() > $primerDiaPeriodo->toDateString()) {
-            $offset = $now->diffInDays($primerDiaPeriodo);
-        } else {
-            $offset = 0;
-        }
-
-        $monto = intval(round(($renta->monto / $cantDiasPeriodo * ($cantDiasPeriodo - $offset)), 2, PHP_ROUND_HALF_UP));
+        $monto = intval(round(($renta->monto / $cantDiasPeriodo * $offset), 2, PHP_ROUND_HALF_UP));
 
         $pagare = $repository->create(
             [
@@ -76,12 +72,12 @@ class GenerarPagareRentaPrimerMes
             ]
         )[1];
 
-	$inquilino = $renta->idInquilino;
+        $inquilino = $renta->idInquilino;
 
         $targetLabel = $inquilino->nombre_y_apellidos;
         $targetType = $inquilino->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
-	$targetNumber = $inquilino->enum_tipo_persona === 'FISICA' ? $inquilino->ci : $inquilino->ruc;
-	$label = 'Pago de renta para el inquilino ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+        $targetNumber = $inquilino->enum_tipo_persona === 'FISICA' ? $inquilino->ci : $inquilino->ruc;
+        $label = 'Pago de renta para el inquilino ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
         $summary = $label;
 
         $items = [];
@@ -159,7 +155,7 @@ class GenerarPagareRentaPrimerMes
             ]
         ];
 
-	$boleta = $this->dispatchNow(new GenerarBoletaPago($datosBoleta));
+        $boleta = $this->dispatchNow(new GenerarBoletaPago($datosBoleta));
 
         return $boleta;
     }
