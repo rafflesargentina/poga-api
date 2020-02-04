@@ -256,25 +256,18 @@ if (App::environment(['local', 'staging'])) {
     });
 
     Route::get('/mailing/pagare-renta-vencido-para-admin-poga/{id}', function(Request $request) {
-        $job = new \Raffles\Modules\Poga\UseCases\TraerBoletaPago($request->id);
-
-        $boleta = $job->handle();
         $pagare = Pagare::where('id', $request->id)->firstOrFail();
 
-        $message = (new PagareRentaVencidoParaAdminPoga($pagare, $boleta))->toMail(User::where('email', env('MAIL_ADMIN_ADDRESS'))->first());
+        $message = (new PagareRentaVencidoParaAdminPoga($pagare))->toMail(User::where('email', env('MAIL_ADMIN_ADDRESS'))->first());
         $markdown = new \Illuminate\Mail\Markdown(view(), config('mail.markdown'));
 
         return $markdown->render('vendor.notifications.email', $message->toArray());
     });
 
     Route::get('/mailing/pagare-renta-vencido-para-deudor/{id}', function(Request $request) {
-        $job = new \Raffles\Modules\Poga\UseCases\TraerBoletaPago($request->id);
-
-        $boleta = $job->handle();
-
         $pagare = Pagare::where('id', $request->id)->firstOrFail();
 
-        $message = (new PagareRentaVencidoDeudor($pagare, $boleta))->toMail(User::where('email', env('MAIL_ADMIN_ADDRESS'))->first());
+        $message = (new PagareRentaVencidoDeudor($pagare))->toMail(User::where('email', env('MAIL_ADMIN_ADDRESS'))->first());
         $markdown = new \Illuminate\Mail\Markdown(view(), config('mail.markdown'));
 
         return $markdown->render('vendor.notifications.email', $message->toArray());

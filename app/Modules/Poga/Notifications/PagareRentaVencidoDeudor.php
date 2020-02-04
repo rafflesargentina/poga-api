@@ -17,25 +17,22 @@ class PagareRentaVencidoDeudor extends Notification implements ShouldQueue
     use Queueable;
 
     /**
-     * The Pagare model and the boleta object.
+     * The Pagare model.
      *
      * @var Pagare
-     * @var mixed
      */
-    protected $pagare, $boleta;
+    protected $pagare;
 
     /**
      * Create a new notification instance.
      *
      * @param Pagare $pagare  The Pagare model.
-     * @param mixed  $boleta  La boleta de pago.
      *
      * @return void
      */
-    public function __construct(Pagare $pagare, $boleta)
+    public function __construct(Pagare $pagare)
     {
         $this->pagare = $pagare;
-        $this->boleta = $boleta;
     }
 
     /**
