@@ -2,7 +2,7 @@
 
 namespace Raffles\Modules\Poga\Repositories;
 
-use Raffles\Modules\Poga\Models\Pagare;
+use Raffles\Modules\Poga\Models\{ Inmueble, Pagare, Renta };
 
 use Carbon\Carbon;
 use Caffeinated\Repository\Repositories\EloquentRepository;
@@ -398,5 +398,33 @@ class PagareRepository extends EloquentRepository
 
 	    return $arr;
 	});
+    }
+
+    /**
+     * Pagares de Multa Pendientes de este mes para Renta.
+     *
+     * @param  Renta $renta
+     *
+     * @return Collection
+     */
+    public function deMultaPendientesDeEsteMesParaRenta(Renta $renta)
+    {
+        $inicioMes = Carbon::now()->startOfMonth()->toDateString();
+
+        return $this->findWhere(['enum_clasificacion_pagare' => 'MULTA_RENTA', 'enum_estado' => 'PENDIENTE', 'fecha_pagare' => ['fecha_pagare', '>=', $inicioMes], 'id_inmueble' => $renta->id_inmueble, 'id_tabla' => $renta->id]);
+    }
+
+    /**
+     * Pagares de Renta Vencidos para Inmueble.
+     *
+     * @param  Inmueble $inmueble
+     *
+     * @return Collection
+     */
+    public function deRentaVencidosParaInmueble(Inmueble $inmueble)
+    {
+	$now = Carbon::now();
+
+        return $this->findWhere(['enum_clasificacion_pagare' => 'RENTA', 'enum_estado' => 'PENDIENTE', 'fecha_vencimiento' =>  ['fecha_vencimiento', '<', $now->toDateString()], 'id_inmueble' => $inmueble->id]);
     }
 }
