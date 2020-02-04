@@ -20,6 +20,16 @@ class RentaRepository extends EloquentRepository
     public $tag = ['Renta'];
 
     /**
+     * Rentas Activas con Multa.
+     *
+     * @return Collection
+     */
+    public function activasConMulta()
+    {
+        return $this->findWhere(['multa' => 1, 'enum_estado' => 'ACTIVO']);
+    }
+
+    /**
      * findRentas.
      *
      * @return array
