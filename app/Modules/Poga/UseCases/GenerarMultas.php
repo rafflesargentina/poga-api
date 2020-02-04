@@ -126,7 +126,7 @@ class GenerarMultas implements ShouldQueue
 	$montoMulta = $pagareMulta->monto;
 	$montoRenta = $pagareMulta->idRenta->monto;
 	$summary = $label.', con multa por atraso.';
-	$validPeriodEnd = Carbon::parse($pagareMulta->fecha_vencimiento)->toAtomString();
+	$validPeriodEnd = Carbon::parse($pagareMulta->fecha_vencimiento)->endOfDay()->toAtomString();
 	$validPeriodStart = $data['debt']['validPeriod']['start'];
 
         $itemExistente = array_search($pagareMulta->id, array_column($boleta['debt']['description']['items'], 'code'));
