@@ -62,23 +62,27 @@ class InvitacionCreada extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        $persona = $this->persona;
-        $remitente = $this->remitente;
+	try {
+            $persona = $this->persona;
+            $remitente = $this->remitente;
 
-	if ($remitente) {
-            $line1 = ($remitente->enum_tipo_persona === 'FISICA' ? $remitente->nombre.' '.$remitente->apellido : $remitente->nombre).' te invita a formar parte de POGA.';
-        } else {
-            $line1 = 'Fuiste invitado a formar parte de POGA.';
+	    if ($remitente) {
+                $line1 = ($remitente->enum_tipo_persona === 'FISICA' ? $remitente->nombre.' '.$remitente->apellido : $remitente->nombre).' te invita a formar parte de POGA.';
+            } else {
+                $line1 = 'Fuiste invitado a formar parte de POGA.';
+	    }
+
+	    $line2 = 'POGA es la plataforma digital que hace el alquiler simple y transparente: https://www.poga.com.py';
+
+            return (new MailMessage)
+                ->subject('Tenés una invitación pendiente')
+                ->greeting('Hola '.$persona->nombre)
+	        ->line($line1)
+	        ->line($line2)
+		->action('Ir a "Completar Registro"', str_replace('api.', 'app.', str_replace('api.', 'app.', url('/registro-invitado/'.$persona->user->codigo_validacion))));
+	} catch (\Exception $e) {
+
 	}
-
-	$line2 = 'POGA es la plataforma digital que hace el alquiler simple y transparente: https://www.poga.com.py';
-
-        return (new MailMessage)
-            ->subject('Tenés una invitación pendiente')
-            ->greeting('Hola '.$persona->nombre)
-	    ->line($line1)
-	    ->line($line2)
-            ->action('Ir a "Completar Registro"', str_replace('api.', 'app.', str_replace('api.', 'app.', url('/registro-invitado/'.$persona->user->codigo_validacion))));
     }
 
     /**
@@ -97,13 +101,16 @@ class InvitacionCreada extends Notification implements ShouldQueue
     public function toSmsApi($notifiable)
     {
         $persona = $this->persona;
-        $remitente = $this->remitente;
-        if ($remitente) {
+	$remitente = $this->remitente;
+
+	if ($remitente) {
+		$content = normalize($remitente->nombre.' '.$remitente->apellido.' te invita a formar parte de POGA. Registrate en: '.str_replace('api.', 'app.', url('/registro-invitado/'.$persona->user->codigo_validacion)));
             return (new SmsApiMessage)
-	       ->content($remitente->nombre.' '.$remitente->apellido.' te invita a formar parte de POGA. Registrate en: '.str_replace('api.', 'app.', url('/registro-invitado/'.$persona->user->codigo_validacion)));
+	       ->content($content);
 	} else {
+		$content = normalize('Te invitaron a formar parte de POGA. Registrate en: '.str_replace('api.', 'app.', url('/registro-invitado/'.$persona->user->codigo_validacion)));
             return (new SmsApiMessage)
-               ->content('Te invitaron a formar parte de POGA. Registrate en: '.str_replace('api.', 'app.', url('/registro-invitado/'.$persona->user->codigo_validacion)));
+               ->content($content);
 	}
     }
 }

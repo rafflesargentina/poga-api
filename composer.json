@@ -50,6 +50,9 @@
         }
     },
     "autoload": {
+        "files": [
+            "app/Modules/Poga/helpers.php"
+	],
         "psr-4": {
             "Raffles\\": "app/"
         },

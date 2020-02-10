@@ -57,21 +57,25 @@ class RentaCreadaInquilinoReferente extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        $inmueble = $this->renta->idInmueble;
-        $unidad = $this->renta->idUnidad;
+        try {
+            $inmueble = $this->renta->idInmueble;
+            $unidad = $this->renta->idUnidad;
 
-        if ($unidad) {
-            $line = 'Se te asignó un contrato de renta para la Unidad "'.$unidad->piso.' - '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'"';
-        } else {
-            $line = 'Se te asignó un contrato de renta para la inmueble "'.$inmueble->idInmueblePadre->nombre.'"';
+            if ($unidad) {
+                $line = 'Se te asignó un contrato de renta para la Unidad "'.$unidad->piso.' - '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'"';
+            } else {
+                $line = 'Se te asignó un contrato de renta para la inmueble "'.$inmueble->idInmueblePadre->nombre.'"';
+            }
+
+            return (new MailMessage)
+                ->subject('Se te asignó un contrato de Renta')
+                ->greeting('Hola '.$notifiable->idPersona->nombre)
+	        ->line($line)
+                ->action('Ver Contrato', str_replace('api.', 'app.', url('/rentas/'.$this->renta->id)))
+		->markdown('poga::mail.renta-creada-para-inquilino', ['renta' => $this->renta, 'user' => $notifiable, 'boleta' => $this->boleta]);
+        } catch (\Exception $e) {
+
         }
-
-        return (new MailMessage)
-            ->subject('Se te asignó un contrato de Renta')
-            ->greeting('Hola '.$notifiable->idPersona->nombre)
-	    ->line($line)
-            ->action('Ver Contrato', str_replace('api.', 'app.', url('/rentas/'.$this->renta->id)))
-	    ->markdown('poga::mail.renta-creada-para-inquilino', ['renta' => $this->renta, 'user' => $notifiable, 'boleta' => $this->boleta]);
     }
 
     /**
@@ -94,12 +98,14 @@ class RentaCreadaInquilinoReferente extends Notification implements ShouldQueue
 	$renta = $this->renta;
 	$propietario = $renta->idInmueble->idPropietarioReferente->idPersona;
 
-        if ($this->renta->vigente) {
+	if ($this->renta->vigente) {
+            $content = normalize('Fuiste asociado a un contrato de renta por '.$propietario->nombre.' '.$propietario->apellido.', ve mas detalles en '.str_replace('api.', 'app.', url('/rentas/'.$renta->id)));
             return (new SmsApiMessage)
-                ->content('Fuiste asociado a un contrato de renta por '.$propietario->nombre.' '.$propietario->apellido.', ve mas detalles en '.str_replace('api.', 'app.', url('/rentas/'.$renta->id)));
-        } else {
+                ->content($content);
+	} else {
+            $content = normalize('Fuiste asociado a un contrato de renta que genero unos pagos pendientes, conoce cuanto pagar en '.str_replace('api.', 'app.', url('/realiza-un-pago/'.$boleta['debt']['docId'])));
             return (new SmsApiMessage)
-                ->content('Fuiste asociado a un contrato de renta que genero unos pagos pendientes, conoce cuanto pagar en '.str_replace('api.', 'app.', url('/realiza-un-pago/'.$boleta['debt']['docId'])));
+                ->content($content);
         }   
     }
 }

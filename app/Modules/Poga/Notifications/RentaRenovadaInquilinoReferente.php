@@ -55,49 +55,53 @@ class RentaRenovadaInquilinoReferente extends Notification implements ShouldQueu
      */
     public function toMail($notifiable)
     {
-	$renta = $this->renta;
-	$inmueble = $renta->idInmueble;
-	$unidad = $renta->idUnidad;
+        try {
+	    $renta = $this->renta;
+	    $inmueble = $renta->idInmueble;
+	    $unidad = $renta->idUnidad;
 
-	$line2 = null;
-	$line3 = null;
-	$line4 = null;
-	$line5 = null;
+	    $line2 = null;
+	    $line3 = null;
+	    $line4 = null;
+	    $line5 = null;
 	
-	switch ($renta->renovacion) {
-        case 'AUTOMATICA':
-            $accion = 'se renovará por un año a partir del '.$renta->fecha_fin->addDay()->format('d/m/Y').' con las mismas condiciones del contrato vigente.';
+	    switch ($renta->renovacion) {
+            case 'AUTOMATICA':
+                $accion = 'se renovará por un año a partir del '.$renta->fecha_fin->addDay()->format('d/m/Y').' con las mismas condiciones del contrato vigente.';
 
-	break;
-        case 'MANUAL':
-	    $accion = 'se renovará con las siguientes condiciones:';
-            $line2 = 'Fecha inicio: '.$renta->fecha_inicio->format('d/m/Y');
-            $line3 = 'Fecha de finalización: '.$renta->fecha_fin->format('d/m/Y');
-            $line4 = 'Monto mensual de renta: '.number_format($renta->monto,0,',','.').' '.$renta->idMoneda->abbr;
-            $line5 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
-	break;
-        case 'NO_RENOVAR':
-            $accion = 'finalizará el '.$renta->fecha_fin->format('d/m/Y').' y no será renovado.';
-	break;
-	}
+	    break;
+            case 'MANUAL':
+	        $accion = 'se renovará con las siguientes condiciones:';
+                $line2 = 'Fecha inicio: '.$renta->fecha_inicio->format('d/m/Y');
+                $line3 = 'Fecha de finalización: '.$renta->fecha_fin->format('d/m/Y');
+                $line4 = 'Monto mensual de renta: '.number_format($renta->monto,0,',','.').' '.$renta->idMoneda->abbr;
+                $line5 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
+	    break;
+            case 'NO_RENOVAR':
+                $accion = 'finalizará el '.$renta->fecha_fin->format('d/m/Y').' y no será renovado.';
+	    break;
+	    }
 
-	if ($unidad) {
-	    $direccion = $unidad->idInmueblePadre->idDireccion;
-	    $line = 'El contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nº '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', '.$accion;
-	} else {
-            $direccion = $inmueble->idInmueblePadre->idDireccion;
-            $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', '.$accion;
-	}
+	    if ($unidad) {
+	        $direccion = $unidad->idInmueblePadre->idDireccion;
+	        $line = 'El contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nº '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', '.$accion;
+	    } else {
+                $direccion = $inmueble->idInmueblePadre->idDireccion;
+                $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', '.$accion;
+	    }
 
-        return (new MailMessage)
-            ->subject('Contrato de renta renovado')
-            ->greeting('Hola '.$notifiable->idPersona->nombre)
-	    ->line($line)
-	    ->line($line2)
-	    ->line($line3)
-	    ->line($line4)
-	    ->line($line5)
-            ->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+            return (new MailMessage)
+                ->subject('Contrato de renta renovado')
+                ->greeting('Hola '.$notifiable->idPersona->nombre)
+	        ->line($line)
+	        ->line($line2)
+	        ->line($line3)
+	        ->line($line4)
+	        ->line($line5)
+		->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+        } catch(\Exception $e) {
+
+        }
     }
 
     /**
@@ -122,23 +126,25 @@ class RentaRenovadaInquilinoReferente extends Notification implements ShouldQueu
 
         switch ($renta->renovacion) {
         case 'AUTOMATICA':
-            $accion = 'se renovará por un año a partir del '.$renta->fecha_fin->addDay()->format('d/m/Y').' con las mismas condiciones del contrato vigente.';
+            $accion = 'se renovará con las mismas condiciones';
 
         break;
         case 'MANUAL':
-            $accion = 'se renovará con las siguientes condiciones:';
+            $accion = 'se renovará';
         break;
         case 'NO_RENOVAR':
-            $accion = 'finalizará el '.$renta->fecha_fin->format('d/m/Y').' y no será renovado.';
+            $accion = 'no será renovado.';
         break;
 	}
 
-        if ($unidad) {
+	if ($unidad) {
+		$content = normalize('Tu contrato de renta para el '.$unidad->tipo.' nro '.$unidad->numero.' '.$accion.'. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
             return (new SmsApiMessage)
-                ->content('Tu contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nro '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", '.$accion.'. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
-        } else {
+                ->content($content);
+	} else {
+		$content = normalize('Tu contrato de renta para el inmueble '.str_limit($inmueble->idInmueblePadre->nombre,17).' '.$accion.'. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
             return (new SmsApiMessage)
-		    ->content('Tu contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', '.$accion.'. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+                ->content($content);
 	}
     }
 }

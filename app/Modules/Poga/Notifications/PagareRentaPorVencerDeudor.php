@@ -59,33 +59,37 @@ class PagareRentaPorVencerDeudor extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        $pagare = $this->pagare;
-        $inmueble = $pagare->idInmueble;
-        $unidad = $pagare->idUnidad;
-        $acreedor = $pagare->idPersonaAcreedora;
+        try {
+            $pagare = $this->pagare;
+            $inmueble = $pagare->idInmueble;
+            $unidad = $pagare->idUnidad;
+            $acreedor = $pagare->idPersonaAcreedora;
 
-        if ($unidad) {
-            $line1 = 'El pago de renta pendiente por el contrato del '.$unidad->idInmueble->idTipoInmueble->tipo.' '.$unidad->piso.' nº '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'" está próximo a vencer. Luego del vencimiento se podrían generar multas.';
-        } else {
-            $line1 = 'El pago de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'" está próximo a vencer. Luego del vencimiento se podrían generar multas.';
+            if ($unidad) {
+                $line1 = 'El pago de renta pendiente por el contrato del '.$unidad->idInmueble->idTipoInmueble->tipo.' '.$unidad->piso.' nº '.$unidad->numero.'" del Inmueble "'.$unidad->idInmueblePadre->nombre.'" está próximo a vencer. Luego del vencimiento se podrían generar multas.';
+            } else {
+                $line1 = 'El pago de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'" está próximo a vencer. Luego del vencimiento se podrían generar multas.';
+            }
+
+            $line2 = 'Propietario: '.($acreedor->enum_tipo_persona === 'FISICA' ? ($acreedor->nombre.' '.$acreedor->apellido.' ('.$acreedor->ci.')') : $acreedor->nombre.' ('.$acreedor->ruc.')');
+            $line3 = 'Monto: '.number_format($pagare->monto,0,',','.').' '.$pagare->idMoneda->abbr;
+            $line4 = 'Vencimiento: '.Carbon::parse($pagare->fecha_vencimiento)->format('d/m/Y');
+            $line5 = 'Multa por día: '.number_format($pagare->idRenta->monto_multa_dia,0,',','.').' '.$pagare->idRenta->idMoneda->abbr;
+            $line6 = 'Comparta el siguiente link con el inquilino para la realización de pagos: '.str_replace('api.', 'app.', url('realiza-un-pago/'.$pagare->id));
+
+            return (new MailMessage)
+                ->subject('Pago de renta próximo a vencer: '.Carbon::parse($this->pagare->fecha_vencimiento)->format('m/Y'))
+                ->greeting('Hola '.$notifiable->idPersona->nombre)
+                ->line($line1)
+                ->line($line2)
+                ->line($line3)
+                ->line($line4)
+                ->line($line5)
+                ->line($line6)
+		->action('Ir a "Mis Pagos"', str_replace('api.', 'app.', url('/cuenta/mis-pagos')));
+        } catch (\Exception $e) {
+
         }
-
-        $line2 = 'Propietario: '.($acreedor->enum_tipo_persona === 'FISICA' ? ($acreedor->nombre.' '.$acreedor->apellido.' ('.$acreedor->ci.')') : $acreedor->nombre.' ('.$acreedor->ruc.')');
-        $line3 = 'Monto: '.number_format($pagare->monto,0,',','.').' '.$pagare->idMoneda->abbr;
-        $line4 = 'Vencimiento: '.Carbon::parse($pagare->fecha_vencimiento)->format('d/m/Y');
-        $line5 = 'Multa por día: '.number_format($pagare->idRenta->monto_multa_dia,0,',','.').' '.$pagare->idRenta->idMoneda->abbr;
-        $line6 = 'Comparta el siguiente link con el inquilino para la realización de pagos: '.str_replace('api.', 'app.', url('realiza-un-pago/'.$pagare->id));
-
-        return (new MailMessage)
-            ->subject('Pago de renta próximo a vencer: '.Carbon::parse($this->pagare->fecha_vencimiento)->format('m/Y'))
-            ->greeting('Hola '.$notifiable->idPersona->nombre)
-            ->line($line1)
-            ->line($line2)
-            ->line($line3)
-            ->line($line4)
-            ->line($line5)
-            ->line($line6)
-            ->action('Ir a "Mis Pagos"', str_replace('api.', 'app.', url('/cuenta/mis-pagos')));
     }
 
     /**
@@ -105,8 +109,9 @@ class PagareRentaPorVencerDeudor extends Notification implements ShouldQueue
     public function toSmsApi($notifiable)
     {
 	$pagare = $this->pagare;
-	
+        $content = normalize('Tenes un pago pendiente de renta que vence el '.Carbon::parse($pagare->fecha_vencimiento)->format('d/m/Y').', realiza tu pago en: '.str_replace('api.', 'app.', url('realiza-un-pago/'.$pagare->id)));
+
 	return (new SmsApiMessage)
-            ->content('Tenes un pago pendiente de renta que vence el '.Carbon::parse($pagare->fecha_vencimiento)->format('d/m/Y').', realiza tu pago en: '.str_replace('api.', 'app.', url('realiza-un-pago/'.$pagare->id)));
+            ->content($content);
     }
 }

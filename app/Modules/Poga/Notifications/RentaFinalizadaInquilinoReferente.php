@@ -55,36 +55,40 @@ class RentaFinalizadaInquilinoReferente extends Notification implements ShouldQu
      */
     public function toMail($notifiable)
     {
-	$renta = $this->renta;
-	$inmueble = $renta->idInmueble;
-	$unidad = $renta->idUnidad;
+        try {
+	    $renta = $this->renta;
+	    $inmueble = $renta->idInmueble;
+	    $unidad = $renta->idUnidad;
 
-	if ($unidad) {
-	    $direccion = $unidad->idInmueblePadre->idDireccion;
-	    $line = 'El contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nº '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado.'; 
-	} else {
-            $direccion = $inmueble->idInmueblePadre->idDireccion;
-            $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado.';
-	}
+	    if ($unidad) {
+	        $direccion = $unidad->idInmueblePadre->idDireccion;
+	        $line = 'El contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nº '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado.'; 
+	    } else {
+                $direccion = $inmueble->idInmueblePadre->idDireccion;
+                $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado.';
+	    }
 
-	$line2 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
-        $line3 = 'Fondo de garantía: '.number_format($renta->garantia,0,',','.').' '.$renta->idMoneda->abbr;
-	$line4 = 'Utilizado del fondo de Garantía: '.number_format($renta->monto_descontado_garantia_finalizacion_contrato,0,',','.').' '.$renta->idMoneda->abbr;
-        $line5 = 'Detalle de uso del depósito de Garantía: '.$renta->motivo_descuento_garantia;
-	$line6 = 'Monto a ser reembolsado por el Propietario: '.number_format($renta->garantia - $renta->monto_descontado_garantia_finalizacion_contrato,0,',','.').' '.$renta->idMoneda->abbr;
-        $line7 = 'Observaciones: '.$renta->observacion;
+	    $line2 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
+            $line3 = 'Fondo de garantía: '.number_format($renta->garantia,0,',','.').' '.$renta->idMoneda->abbr;
+	    $line4 = 'Utilizado del fondo de Garantía: '.number_format($renta->monto_descontado_garantia_finalizacion_contrato,0,',','.').' '.$renta->idMoneda->abbr;
+            $line5 = 'Detalle de uso del depósito de Garantía: '.$renta->motivo_descuento_garantia;
+	    $line6 = 'Monto a ser reembolsado por el Propietario: '.number_format($renta->garantia - $renta->monto_descontado_garantia_finalizacion_contrato,0,',','.').' '.$renta->idMoneda->abbr;
+            $line7 = 'Observaciones: '.$renta->observacion;
 
-        return (new MailMessage)
-            ->subject('Contrato de renta finalizado')
-            ->greeting('Hola '.$notifiable->idPersona->nombre)
-	    ->line($line)
-	    ->line($line2)
-	    ->line($line3)
-	    ->line($line4)
-	    ->line($line5)
-	    ->line($line6)
-	    ->line($line7)
-            ->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+            return (new MailMessage)
+                ->subject('Contrato de renta finalizado')
+                ->greeting('Hola '.$notifiable->idPersona->nombre)
+	        ->line($line)
+	        ->line($line2)
+	        ->line($line3)
+	        ->line($line4)
+	        ->line($line5)
+	        ->line($line6)
+	        ->line($line7)
+		->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+        } catch (\Exception $e) {
+
+        }
     }
 
     /**
@@ -110,14 +114,16 @@ class RentaFinalizadaInquilinoReferente extends Notification implements ShouldQu
 
 	if ($unidad) {
             $direccion = $unidad->idInmueblePadre->idDireccion;
+	    $content = normalize('Tu contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nro '.$unidad->numero.' ha finalizado. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
 
             return (new SmsApiMessage)
-                ->content('Tu contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nro '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", ha finalizado. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+                ->content($content);
 	} else {
             $direccion = $inmueble->idInmueblePadre->idDireccion;
+	    $content = normalize('Tu contrato de renta para el inmueble '.str_limit($inmueble->idInmueblePadre->nombre,17).' ha finalizado. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
 
             return (new SmsApiMessage)
-                    ->content('Tu contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', ha finalizado. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+                    ->content($content);
         }
     }
 }

@@ -55,24 +55,28 @@ class RentaPorFinalizarInquilinoReferente extends Notification implements Should
      */
     public function toMail($notifiable)
     {
-	$renta = $this->renta;    
-	$inmueble = $this->renta->idInmueble;
-        $unidad = $this->renta->idUnidad;
+        try {
+	    $renta = $this->renta;    
+	    $inmueble = $this->renta->idInmueble;
+            $unidad = $this->renta->idUnidad;
 
-        if ($unidad) {
-            $line = 'El contrato de renta para el'.$unidad->tipo.' '.$unidad->piso.' nº '.$unidad->numero.' del Inmueble "'.$unidad->idInmueblePadre->nombre.'" está por vencer en '.$renta->dias_notificacion_previa_renovacion.' días. Coordina con tu propietario la finalización o renovación.';
-        } else {
-            $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'" está por vencer en '.$this->renta->dias_notificacion_previa_renovacion.' días. Coordina con tu propietario la finalización o renovación.';
+            if ($unidad) {
+                $line = 'El contrato de renta para el'.$unidad->tipo.' '.$unidad->piso.' nº '.$unidad->numero.' del Inmueble "'.$unidad->idInmueblePadre->nombre.'" está por vencer en '.$renta->dias_notificacion_previa_renovacion.' días. Coordina con tu propietario la finalización o renovación.';
+            } else {
+                $line = 'El contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'" está por vencer en '.$this->renta->dias_notificacion_previa_renovacion.' días. Coordina con tu propietario la finalización o renovación.';
+            }
+
+            $line2 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
+
+            return (new MailMessage)
+                ->subject('Contrato próximo a vencer')
+                ->greeting('Hola '.$this->renta->idInmueble->idPropietarioReferente->idPersona->nombre)
+	        ->line($line)
+	        ->line($line2)
+		->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+        } catch(\Exception $e) {
+
         }
-
-        $line2 = 'Propietario: '.$inmueble->idPropietarioReferente->idPersona->nombre_y_apellidos;
-
-        return (new MailMessage)
-            ->subject('Contrato próximo a vencer')
-            ->greeting('Hola '.$this->renta->idInmueble->idPropietarioReferente->idPersona->nombre)
-	    ->line($line)
-	    ->line($line2)
-	    ->action('Ir a "Mis Contratos"', str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
     }
 
     /**
@@ -95,12 +99,14 @@ class RentaPorFinalizarInquilinoReferente extends Notification implements Should
         $inmueble = $renta->idInmueble;
         $unidad = $renta->idUnidad;
 
-        if ($unidad) {
+	if ($unidad) {
+	    $content = normalize('Tu contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nro '.$unidad->numero.', esta proximo a vencer. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
             return (new SmsApiMessage)
-                ->content('Tu contrato de renta para el '.$unidad->tipo.' '.' piso '.$unidad->piso.' nro '.$unidad->numero.' del inmueble "'.$unidad->idInmueblePadre->nombre.'", esta proximo a vencer. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
-        } else {
+                ->content($content);
+	} else {
+		$content = normalize('Tu contrato de renta para el inmueble '.str_limit($inmueble->idInmueblePadre->nombre,17).', esta por vencer. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
             return (new SmsApiMessage)
-                ->content('Tu contrato de renta para el inmueble "'.$inmueble->idInmueblePadre->nombre.'", ubicado en '.$direccion->calle_principal.' '.($direccion->numeracion ? $direccion->numeracion : ($direccion->calle_secundaria ? 'c/ '.$direccion->numeracion : '')).', esta por vencer. Ver detalles en: '.str_replace('api.', 'app.', url('/cuenta/mis-rentas')));
+                ->content($content);
         }
     }
 }
