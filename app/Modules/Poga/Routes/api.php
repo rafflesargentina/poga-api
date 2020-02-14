@@ -44,7 +44,7 @@ Route::put('finanzas/cargarFondoReserva', Finanzas\CargarFondoReservaController:
 Route::put('finanzas/confirmarPago', Finanzas\ConfirmarPagoController::class);
 Route::put('finanzas/rechazarPago', Finanzas\RechazarPagoController::class);
 Route::put('finanzas/distribuirExpensas', Finanzas\DistribuirExpensasController::class);
-Route::put('finanzas/rentas/anular-pago/{id}', Finanzas\AnularPagareRentaController::class);
+Route::put('finanzas/rentas/anular-pago/{id}', Finanzas\AnularPagareController::class);
 Route::apiResource('bancos', Finanzas\BancoController::class, ['only' => ['index']]);
 Route::apiResource('monedas', Finanzas\MonedaController::class, ['only' => ['index']]);
 Route::apiResource('pagares', Finanzas\PagareController::class);

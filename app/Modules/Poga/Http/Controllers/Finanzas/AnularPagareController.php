@@ -6,10 +6,11 @@ use Raffles\Modules\Poga\Http\Controllers\Controller;
 use Raffles\Modules\Poga\Repositories\PagareRepository;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\MessageBag;
 use Raffles\Modules\Poga\UseCases\AnularPagare;
 use RafflesArgentina\ResourceController\Traits\FormatsValidJsonResponses;
 
-class AnularPagareRentaController extends Controller
+class AnularPagareController extends Controller
 {
     use FormatsValidJsonResponses;
 
@@ -44,10 +45,16 @@ class AnularPagareRentaController extends Controller
      */    
     public function __invoke(Request $request, $id)
     {
-        $model = $this->repository->where('enum_clasificacion_pagare', 'RENTA')->first();
+        $model = $this->repository->find($id);
 
         if (!$model) {
             return $this->validNotFoundJsonResponse();
+	}
+
+	if ($model->enum_estado !== 'PENDIENTE') {
+            $errors = new MessageBag;
+	    $errors->add('enum_estado', 'Sólo puede anularse pagares con estado pendiente.');
+            return $this->validUnprocessableEntityJsonResponse($errors, $errors->first());
 	}
 
         $response = $this->dispatch(new AnularPagare($model));
