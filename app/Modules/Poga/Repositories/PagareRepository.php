@@ -82,7 +82,7 @@ class PagareRepository extends EloquentRepository
 	// Agrupa Boletas de Renta.
 	$one = new \Illuminate\Database\Eloquent\Builder(clone $builder->getQuery());
         $one->setModel($builder->getModel());
-        $one->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idUnidad');
+        $one->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idRenta', 'idUnidad');
 	$one->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, SUM(monto) as total'));
         $one->whereIn('enum_clasificacion_pagare', ['RENTA', 'COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA']);
         $one->groupBy('enum_estado', 'id_inmueble', 'mes', 'id_tabla');
