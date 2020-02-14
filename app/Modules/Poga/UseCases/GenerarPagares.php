@@ -25,8 +25,8 @@ class GenerarPagares implements ShouldQueue
     public function handle(RentaRepository $repository)
     {
         $rentas = $repository->findWhere(['enum_estado' => 'ACTIVO']);
-
-        foreach($rentas as $renta) {
+	
+	foreach($rentas as $renta) {
             $this->generarPagareRenta($renta);
         }
     }
@@ -37,7 +37,7 @@ class GenerarPagares implements ShouldQueue
         $endOfMonth = $now->copy()->endOfMonth();
         $startOfMonth = $now->copy()->startOfMonth();
 
-        if ($renta->created_at->format('m') !== $now->format('m')) {
+        if ($renta->created_at->format('Y-m') !== $now->format('Y-m')) {
             $fechaCreacionPagare = $now;
 	    $fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
 
