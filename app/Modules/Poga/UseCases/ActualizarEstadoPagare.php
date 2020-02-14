@@ -3,15 +3,10 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use Raffles\Modules\Poga\Models\Pagare;
-use Raffles\Modules\Poga\Notifications\EstadoPagareActualizado;
 use Raffles\Modules\Poga\Repositories\PagareRepository;
-
-use Illuminate\Foundation\Bus\DispatchesJobs;
 
 class ActualizarEstadoPagare
 {
-    use DispatchesJobs;
-
     /**
      * The Pagare model.
      *
@@ -49,27 +44,6 @@ class ActualizarEstadoPagare
      */
     public function handle(PagareRepository $repository)
     {
-        $pagare = $repository->update($this->pagare, ['enum_estado' => $this->estado])[1];
-
-	//$personaAdministradorReferente = $pagare->idInmueble->idAdministradorReferente;
-	//if ($personaAdministradorReferente) {
-	    //$userAdministradorReferente = $personaAdministradorReferente->idPersona->user;
-	    //if ($userAdministradorReferente) {
-	        //$userAdministrador->notify(new EstadoPagareActualizado($pagare));
-            //}
-	//}
-
-        $acreedor = $pagare->idPersonaAcreedora->user;
-        $deudor = $pagare->idPersonaDeudora->user;
-
-        //if ($acreedor) {
-            //$acreedor->notify(new EstadoPagareActualizado($pagare));
-        //}
-
-        //if ($deudor) {
-            //$deudor->notify(new EstadoPagareActualizado($pagare));
-        //}
-
-        return $pagare;
+        return $repository->update($this->pagare, ['enum_estado' => $this->estado])[1];
     }
 }
