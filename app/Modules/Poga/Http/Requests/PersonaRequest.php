@@ -45,7 +45,7 @@ class PersonaRequest extends FormRequest
             ],
             'id_banco' => 'required_if:enum_rol,4',
             'id_pais' => 'required',
-	    'mail' => ['required',Rule::unique('personas')->ignore($id)],
+	    'mail' => ['nullable',Rule::unique('personas')->ignore($id)],
             'nombre' => 'required',
             'razon_social' => 'required_if:enum_rol,4',
             'ruc' => [
