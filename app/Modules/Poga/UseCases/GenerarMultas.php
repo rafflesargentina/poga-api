@@ -59,7 +59,7 @@ class GenerarMultas implements ShouldQueue
                 ]
 	    );
 
-	    $pagareMulta = $rPagare->deMultaPendientesDeEsteMesParaRenta($renta)->first();
+	    $pagareMulta = $rPagare->deMultaPorPeriodoParaRenta($fechaPagare, $renta)->first();
 	    if (!$pagareMulta) {
                 $monto = $renta->monto_multa_dia;
 
@@ -78,6 +78,11 @@ class GenerarMultas implements ShouldQueue
                     ]
 	        )[1];
 
+                $uc = new TraerBoletaPago($pagareVencido->id);
+                $boleta = $uc->handle();
+
+                $this->actualizarBoletaPago($boleta, $pagareMulta);
+
                 // Notifica solamente la primer vez que genera pagare de multa.
                 $pagareVencido->idPersonaAcreedora->user->notify(new PagareRentaVencidoAcreedor($pagareVencido));
                 $pagareVencido->idPersonaDeudora->user->notify(new PagareRentaVencidoDeudor($pagareVencido));
@@ -87,22 +92,22 @@ class GenerarMultas implements ShouldQueue
                     $admin->notify(new PagareRentaVencidoParaAdminPoga($pagareVencido));
                 }
 	    } else {
-		$diasAtraso = $fechaVencimiento->diffInDays($pagareVencido->fecha_vencimiento);
-		$monto = $renta->monto_multa_dia * $diasAtraso;
+                if ($pagareMulta->enum_estado === 'PENDIENTE') {
+		    $diasAtraso = $fechaVencimiento->diffInDays($pagareVencido->fecha_vencimiento);
+		    $monto = $renta->monto_multa_dia * $diasAtraso;
         
-                $pagareMulta->update(
-                    [
-			'fecha_vencimiento' => $fechaVencimiento->toDateString(),    
-                        'monto' => $monto, 
-                    ]
-		);
-            }
+                    $pagareMulta->update(
+                        [
+			    'fecha_vencimiento' => $fechaVencimiento->toDateString(),    
+                            'monto' => $monto, 
+                        ]
+		    );
+		
+                    $uc = new TraerBoletaPago($pagareVencido->id);
+                    $boleta = $uc->handle();
 
-            $uc = new TraerBoletaPago($pagareVencido->id);
-	    $boleta = $uc->handle(); 
-
-	    if ($boleta) {
-                $this->actualizarBoletaPago($boleta, $pagareMulta);
+                    $this->actualizarBoletaPago($boleta, $pagareMulta);
+		}	
             }
         }
     }

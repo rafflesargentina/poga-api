@@ -82,7 +82,7 @@ class PagareRepository extends EloquentRepository
 	// Agrupa Boletas de Renta.
 	$one = new \Illuminate\Database\Eloquent\Builder(clone $builder->getQuery());
         $one->setModel($builder->getModel());
-        $one->with('idInmueble', 'idPagarePadre', 'idUnidad');
+        $one->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idUnidad');
 	$one->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, SUM(monto) as total'));
         $one->whereIn('enum_clasificacion_pagare', ['RENTA', 'COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA']);
         $one->groupBy('enum_estado', 'id_inmueble', 'mes', 'id_tabla');
@@ -90,14 +90,14 @@ class PagareRepository extends EloquentRepository
 	// Trae Solicitudes de Pago.
         $two = new \Illuminate\Database\Eloquent\Builder(clone $builder->getQuery());
         $two->setModel($builder->getModel());
-        $two->with('idInmueble', 'idPagarePadre', 'idUnidad');
+        $two->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idUnidad');
 	$two->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, monto as total'));
         $two->where('enum_clasificacion_pagare', 'OTRO');
 
 	// Trae pagos transferidos agrupados por Comisión.
         $three = new \Illuminate\Database\Eloquent\Builder(clone $builder->getQuery());
         $three->setModel($builder->getModel());
-	$three->with('idInmueble', 'idPagarePadre', 'idUnidad');
+	$three->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idUnidad');
 	$three->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, monto as total'));
         $three->where('enum_estado', 'TRANSFERIDO');
 
@@ -115,7 +115,6 @@ class PagareRepository extends EloquentRepository
 	})
 	->where('enum_clasificacion_pagare', 'RENTA')
         ->where('enum_estado', 'PENDIENTE')
-	//->where('fecha_vencimiento', '>', \DB::raw('rentas.
 	->get();
     }
 
@@ -401,17 +400,18 @@ class PagareRepository extends EloquentRepository
     }
 
     /**
-     * Pagares de Multa Pendientes de este mes para Renta.
+     * Pagares de Multa por período para Renta.
      *
-     * @param  Renta $renta
+     * @param  string $periodo Fecha parseable por Carbon
+     * @param  Renta  $renta
      *
      * @return Collection
      */
-    public function deMultaPendientesDeEsteMesParaRenta(Renta $renta)
+    public function deMultaPorPeriodoParaRenta($periodo, Renta $renta)
     {
-        $inicioMes = Carbon::now()->startOfMonth()->toDateString();
+        $inicioPeriodo = Carbon::parse($periodo)->startOfMonth()->toDateString();
 
-        return $this->findWhere(['enum_clasificacion_pagare' => 'MULTA_RENTA', 'enum_estado' => 'PENDIENTE', 'fecha_pagare' => ['fecha_pagare', '>=', $inicioMes], 'id_inmueble' => $renta->id_inmueble, 'id_tabla' => $renta->id]);
+        return $this->findWhere(['enum_clasificacion_pagare' => 'MULTA_RENTA', 'fecha_pagare' => ['fecha_pagare', '>=', $periodo], 'id_inmueble' => $renta->id_inmueble, 'id_tabla' => $renta->id]);
     }
 
     /**
