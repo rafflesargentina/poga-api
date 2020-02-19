@@ -59,14 +59,6 @@ class TransferirPagare
 	    }
 	}
 
-	$personaDeudora = $pagare->idPersonaDeudora;
-        if ($personaDeudora) {
-	    $usuarioDeudor = $personaDeudora->user;
-	    if ($usuarioDeudor) {
-	        $usuarioDeudor->notify(new EstadoPagareActualizado($pagare));
-	    }
-	}
-
         return $pagare;
     }   
 }
