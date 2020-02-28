@@ -21,7 +21,11 @@ class MonedasTableSeeder extends Seeder
                 'abbr' => 'Gs', 
                 'enum_estado' => 'ACTIVO'
             ], // 1
-           
+            [
+                'moneda' => 'Dólar Norteamericano',
+                'abbr' => 'USD',
+                'enum_estado' => 'ACTIVO'
+            ], // 2
         ];
 
         foreach ($monedas as $moneda) { Moneda::create($moneda);
