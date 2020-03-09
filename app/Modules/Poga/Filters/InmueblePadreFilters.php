@@ -87,4 +87,52 @@ class InmueblePadreFilters extends BaseFilters
         break;
         }
     }
+
+    /**
+     * id_propietario_referente.
+     *
+     * @param mixed $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function id_propietario_referente($query)
+    {
+        return $this->builder->whereHas(
+            'idInmueble', function ($inmueble) use ($query) {
+                $inmueble->whereHas(
+                    'idPropietarioReferente', function ($persona) use ($query) {
+                        $persona->where('id_persona', $query);
+                    }
+                );
+            }
+        );
+    }
+
+    /**
+     * id_tipo_inmueble.
+     *
+     * @param mixed $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function id_tipo_inmueble($query)
+    {
+        return $this->builder->whereHas(
+            'idInmueble', function ($q) use ($query) {
+                return $q->where('id_tipo_inmueble', $query);
+            }
+        );
+    }
+
+    /**
+     * modalidad_propiedad.
+     *
+     * @param mixed $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function modalidad_propiedad($query)
+    {
+        return $this->builder->where('modalidad_propiedad', $query);
+    }
 }
