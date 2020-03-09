@@ -4,6 +4,11 @@ namespace Raffles\Modules\Poga\Models\Traits;
 
 trait PagareTrait
 {
+    /**
+     * Get the formatted option for enum_clasificacion_pagare.
+     *
+     * @return string
+     */
     public function getClasificacionAttribute()
     {
         switch ($this->enum_clasificacion_pagare) {
@@ -11,7 +16,7 @@ trait PagareTrait
             $clasificacion = 'Comisión Inmobiliaria';
         break;
         case 'COMISION_POGA':
-            $clasificacion = 'Comisión Poga(5.5%)';
+            $clasificacion = 'Comisión Poga (5.5%)';
         break;
         case 'COMISION_RENTA_ADMIN':
             $clasificacion = 'Comisión Renta Administrador';
@@ -29,7 +34,7 @@ trait PagareTrait
             $clasificacion = 'Multa por renta atrasada';
         break;
         case 'OTRO':
-            $clasificacion = 'Otro';
+            $clasificacion = 'Solicitud de Pago';
         break;
         case 'RENTA':
             $clasificacion = 'Renta';
@@ -43,6 +48,32 @@ trait PagareTrait
             $clasificacion = $this->enum_clasificacion_pagare;
         }
 
-        $this->attributes['clasificacion'] = $clasificacion;
+        return $this->attributes['clasificacion'] = $clasificacion;
+    }
+
+    /**
+     * Get the formatted option for enum_estado.
+     *
+     * @return string
+     */
+    public function getEstadoAttribute()
+    {
+        switch ($this->enum_estado) {
+        case 'A_CONFIRMAR_POR_ADMIN':
+            $estado = 'A confirmar';
+	break;
+	case 'ANULADO':
+            $estado = 'Anulado';
+        break;
+        case 'PAGADO':
+            $estado = 'Pagado';
+        break;
+        case 'PENDIENTE':
+            $estado = 'Pendiente';
+	default:
+	    $estado = $this->enum_estado;
+	}
+
+	return $this->attributes['estado'] = $estado;
     }
 }

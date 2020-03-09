@@ -4,13 +4,19 @@ namespace Raffles\Modules\Poga\Models;
 
 use Raffles\Modules\Poga\Filters\PagareFilters;
 use Raffles\Modules\Poga\Sorters\PagareSorters;
+use Raffles\Modules\Poga\Models\Traits\PagareTrait;
 
 use Illuminate\Database\Eloquent\Model;
 use RafflesArgentina\FilterableSortable\FilterableSortableTrait;
 
 class Pagare extends Model
 {
-    use FilterableSortableTrait;
+    use FilterableSortableTrait, PagareTrait;
+
+    protected $appends = [
+        'clasificacion',
+        'estado',
+    ];
 
     /**
      * The attributes that are mass assignable.
