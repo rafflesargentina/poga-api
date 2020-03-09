@@ -84,7 +84,8 @@ class PagareRepository extends EloquentRepository
         $one->setModel($builder->getModel());
         $one->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idRenta', 'idUnidad');
 	$one->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, SUM(monto) as total'));
-        $one->whereIn('enum_clasificacion_pagare', ['RENTA', 'COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA']);
+	$one->whereIn('enum_clasificacion_pagare', ['RENTA', 'COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA']);
+	$one->whereIn('enum_estado', ['ANULADO', 'PAGADO', 'PENDIENTE']);
         $one->groupBy('enum_estado', 'id_inmueble', 'mes', 'id_tabla');
 
 	// Trae Solicitudes de Pago.
@@ -92,16 +93,18 @@ class PagareRepository extends EloquentRepository
         $two->setModel($builder->getModel());
         $two->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idUnidad');
 	$two->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, monto as total'));
-        $two->where('enum_clasificacion_pagare', 'OTRO');
+	$two->where('enum_clasificacion_pagare', 'OTRO');
+        $two->whereIn('enum_estado', ['ANULADO', 'PAGADO', 'PENDIENTE']);
 
 	// Trae pagos transferidos agrupados por Comisión.
         $three = new \Illuminate\Database\Eloquent\Builder(clone $builder->getQuery());
         $three->setModel($builder->getModel());
 	$three->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idUnidad');
 	$three->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, monto as total'));
-        $three->where('enum_estado', 'TRANSFERIDO');
+	$three->where('enum_clasificacion_pagare', 'COMISION_POGA');
+	$three->where('enum_estado', 'TRANSFERIDO');
 
-        return $one->get()->merge($two->get(), $three->get());
+        return $one->get()->merge($two->get())->merge($three->get());
     }
 
     public function traeDeRentaConMultaPendientes()
@@ -181,56 +184,10 @@ class PagareRepository extends EloquentRepository
     {
         return $items->map(
             function ($item) {
-                $clasificacion = '';
-	        switch ($item->enum_clasificacion_pagare) {
-	            case 'COMISION_RENTA_ADMIN':
-		        $clasificacion = 'Comisión Renta Administrador';
-		    break;
-		    case 'COMISION_RENTA_PRIM_ADMIN':
-		        $clasificacion = 'Comisión. primer mes Renta Administrador';
-		    break;
-		    case 'EXPENSA':
-			$clasificacion = 'Expensa';
-	            break;
-		    case 'MULTA_RENTA':
-		        $clasificacion = 'Multa Renta atrasada';
-		    break;
-		    case 'OTRO':
-		        $clasificacion = 'Otro';
-		    break;
-		    case 'RENTA':
-		        $clasificacion = 'Renta';
-		    break;
-		    case 'SALARIO_ADMINISTRADOR':
-		        $clasificacion = 'Salario del Administrador';
-		    break;
-		    case 'SALARIO_CONSERJE':
-			$clasificacion = 'Salario del Conserje';
-		    default:
-		        $clasificacion = '';
-		}
-
-                $estado = '';
-		switch ($item->enum_estado) {
-		    case 'ANULADO':
-		        $estado = 'Anulado';
-		    break;
-		    case 'PAGADO':
-		        $estado = 'Pagado';
-		    break;
-		    case 'PENDIENTE':
-		        $estado = 'Pendiente';
-		    break;
-	            case 'A_CONFIRMAR_POR_ADMIN':
-		        $estado = 'A confirmar';
-		    default:
-		        $estado = '';
-		}
-
 		return [
-                    'clasificacion' => $clasificacion,
+                    'clasificacion' => $item->clasificacion,
 		    'concepto' => $item->description,
-		    'estado' => $estado,
+		    'estado' => $item->estado,
 		    'fecha' => $item->fecha_pagare,
 		    'id' => $item->id,
 		    'id_inmueble' => $item->id_inmueble,
@@ -310,69 +267,15 @@ class PagareRepository extends EloquentRepository
     public function mapReporte(Collection $items)
     {
         return $items->map(function($item) {
-            switch ($item->enum_clasificacion_pagare) {
-	        case 'COMISION_INMOBILIARIA':
-                    $clasificacion = 'Comisión Inmobiliaria';
-		break;
-	        case 'COMISION_POGA':
-                    $clasificacion = 'Comisión Poga(5.5%)';
-                break;
-	        case 'COMISION_RENTA_ADMIN':
-                    $clasificacion = 'Comisión Renta Administrador';
-                break;
-                case 'COMISION_RENTA_PRIM_ADMIN':
-                    $clasificacion = 'Comisión. primer mes Renta Administrador';
-		break;
-		case 'DEPOSITO_GARANTIA':
-                    $clasificacion = 'Depósito de Garantía';
-                break;
-                case 'EXPENSA':
-                    $clasificacion = 'Expensa';
-                break;
-                case 'MULTA_RENTA':
-                    $clasificacion = 'Multa por renta atrasada';
-                break;
-                case 'OTRO':
-                    $clasificacion = 'Otro';
-                break;
-                case 'RENTA':
-                    $clasificacion = 'Renta';
-                break;
-                case 'SALARIO_ADMINISTRADOR':
-                    $clasificacion = 'Salario del Administrador';
-                break;
-                case 'SALARIO_CONSERJE':
-                    $clasificacion = 'Salario del Conserje';
-                default:
-                    $clasificacion = '';
-            }
-
-            $estado = '';
-            switch ($item->enum_estado) {
-                case 'ANULADO':
-                    $estado = 'Anulado';
-                break;
-                case 'PAGADO':
-                    $estado = 'Pagado';
-                break;
-                case 'PENDIENTE':
-                    $estado = 'Pendiente';
-                break;
-                case 'A_CONFIRMAR_POR_ADMIN':
-                    $estado = 'A confirmar';
-                default:
-                    $estado = '';
-            }
-
 	    $arr = [
 		'Fecha' => Carbon::parse($item->fecha_pagare)->format('d/m/Y'),
 		'Inmueble' => $item->idInmueble->idInmueblePadre->nombre,
 		'Dirección' => $item->idInmueble->direccion,
 		'Unidad' => $item->idUnidad ? $item->idUnidad->numero : 'N/A',
-		'Inquilino' => $item->idPersonaDeudora->nombre_y_apellidos,
-		'Estado' => $estado,
-		'Clasificación' => $clasificacion,
-		'Monto' => '$ '.number_format($item->monto,0,',','.'),
+		'Inquilino' => $item->enum_clasificacion_pagare !== 'COMISION_POGA' ? $item->idPersonaDeudora->nombre_y_apellidos : 'N/A',
+		'Estado' => $item->estado,
+		'Clasificación' => $item->clasificacion,
+		'Monto' => $item->enum_clasificacion_pagare !== 'COMISION_POGA' ? $item->monto : ($item->monto * -1),
 	    ];
 
 	    if ($item->enum_estado === 'PAGADO') {
