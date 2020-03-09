@@ -4,7 +4,7 @@ use Raffles\Notifications\ResetPasswordNotification;
 
 use Raffles\Modules\Poga\Models\{ Inmueble, Pagare, Renta, Unidad, User };
 use Raffles\Modules\Poga\Mail\{ PagoConfirmadoAcreedor, PagoConfirmadoDeudor, PagoConfirmadoParaAdminPoga, PagoTransferidoAcreedor, PagoTransferidoParaAdminPoga, RegistroCompletadoParaAdminPoga, RentaCreadaParaAdminPoga, RentaCreadaParaInquilino, RentaCreadaParaPropietario, UsuarioCreadoParaAdminPoga };
-use Raffles\Modules\Poga\Notifications\{ InmuebleCreado, InmuebleCreadoParaAdminPoga, InvitacionCreada, PagareCreadoParaAdminPoga, PagareCreadoPersonaAcreedora, PagareCreadoPersonaDeudora, PagareRentaPorVencerParaAdminPoga, PagareRentaPorVencerAcreedor, PagareRentaPorVencerDeudor, PagareRentaVencidoAcreedor, PagareRentaVencidoDeudor, PagareRentaVencidoParaAdminPoga, RegistroCompletado, RentaFinalizadaInquilinoReferente, RentaFinalizadaParaAdminPoga, RentaFinalizadaPropietarioReferente, RentaPorFinalizarInquilinoReferente, RentaPorFinalizarParaAdminPoga, RentaPorFinalizarPropietarioReferente, RentaRenovadaInquilinoReferente, RentaRenovadaPropietarioReferente, RentaRenovadaParaAdminPoga, UnidadCreada, UnidadCreadaParaAdminPoga, UsuarioRegistrado };
+use Raffles\Modules\Poga\Notifications\{ InmuebleCreado, InmuebleCreadoParaAdminPoga, InvitacionCreada, PagareCreadoParaAdminPoga, PagareCreadoPersonaAcreedora, PagareCreadoPersonaDeudora, PagareRentaPorVencerParaAdminPoga, PagareRentaPorVencerAcreedor, PagareRentaPorVencerDeudor, PagareRentaVencidoAcreedor, PagareRentaVencidoDeudor, PagareRentaVencidoParaAdminPoga, PagoAnulado, RegistroCompletado, RentaFinalizadaInquilinoReferente, RentaFinalizadaParaAdminPoga, RentaFinalizadaPropietarioReferente, RentaPorFinalizarInquilinoReferente, RentaPorFinalizarParaAdminPoga, RentaPorFinalizarPropietarioReferente, RentaRenovadaInquilinoReferente, RentaRenovadaPropietarioReferente, RentaRenovadaParaAdminPoga, UnidadCreada, UnidadCreadaParaAdminPoga, UsuarioRegistrado };
 use Raffles\Modules\Poga\UseCases\TraerBoletaPago;
 
 use Illuminate\Http\Request;
@@ -313,6 +313,15 @@ if (App::environment(['local', 'staging'])) {
         $user = User::where('email', env('MAIL_ADMIN_ADDRESS'))->firstOrFail();
 
         return new PagoConfirmadoDeudor($pagare, $user, $boleta);
+    });
+
+    Route::get('/mailing/pago-anulado/{id}', function(Request $request) {
+        $pagare = Pagare::findOrFail($request->id);
+
+        $message = (new PagoAnulado($pagare))->toMail(User::where('email', env('MAIL_ADMIN_ADDRESS'))->first());
+	$markdown = new \Illuminate\Mail\Markdown(view(), config('mail.markdown'));
+
+        return $markdown->render('vendor.notifications.email', $message->toArray());
     });
 
     Route::get('/mailing/pago-transferido-para-acreedor/{id}', function(Request $request) {
