@@ -43,7 +43,8 @@ class Inmueble extends Model
      */
     protected $fillable = [
         'area',
-        'area_estacionamiento',
+	'area_estacionamiento',
+	'cta_cte_catastral',
         'descripcion',
         'enum_estado',
         'enum_tabla_hija',
