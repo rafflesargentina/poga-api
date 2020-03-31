@@ -10,6 +10,7 @@ use Raffles\Modules\Poga\UseCases\{ ActualizarEstadoPagare, GenerarBoletaPago };
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Log;
 use RafflesArgentina\ResourceController\Traits\FormatsValidJsonResponses;
 
 class NotificacionPagoController extends Controller
@@ -26,7 +27,7 @@ class NotificacionPagoController extends Controller
     /**
      * Create a new NotificacionPagoController instance.
      *
-     * @param  PagareRepository $repository
+     * @param PagareRepository $repository
      *
      * @return void
      */
@@ -38,93 +39,117 @@ class NotificacionPagoController extends Controller
     /**
      * Handle the incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
     public function __invoke(Request $request)
     {
         $b64UrlModel = $request->doc_model;
         $jsonModel =  base64_decode(str_replace(['-','_'], ['+','/'], $b64UrlModel));
-	$docModel = json_decode($jsonModel, true);
-	$items = $docModel['description']['items'];
+        $docModel = json_decode($jsonModel, true);
 
-        \Log::info($docModel);
+        Log::info('Nueva notificación de pago:');
+        Log::info($docModel);
 
-        $pagare = $this->repository->findOrFail($docModel['docId']);
+        // Buscamos el pagare asociado a la boleta.
+        $pagareBoleta = $this->repository->find($docModel['docId']);
 
+	if (!$pagareBoleta) {
+            $this->validNotFoundJsonResponse();
+        }
+
+        $this->handlePayStatus($docModel, $pagareBoleta);
+
+        return $this->validSuccessJsonResponse();
+    }
+
+    /**
+     * @param array  $docModel     La notificación de pago.
+     * @param Pagare $pagareBoleta El pagare asociado a la boleta.
+     *
+     * @return JsonResponse
+     */
+    protected function handlePayStatus($docModel, $pagareBoleta)
+    {
         $payStatus = $docModel['payStatus']['status'];
-        if ($payStatus === 'success') {
-            $estado = 'PAGADO';
+        $items = $docModel['description']['items'];
 
-            $adminUser = \Raffles\Modules\Poga\Models\User::where('email', 'josue.aveiro@mavaite.com')->first();
+        switch ($payStatus) {
+        case 'success':
+            $adminUser = User::where('email', env('MAIL_ADMIN_ADDRESS'))->first();
+
+            // Si el pagaré está en dólares.
+	    if ($pagareBoleta->id_moneda == 2) {
+                $cotizacion = $docModel['txList'][0]['exchangeRate']['value'];
+            } else {
+                $cotizacion = 0;
+            }
 
             if ($items) {
-               foreach ($items as $item) {
-                   $pagare = $this->repository->findOrFail($item['code']);
+                // Si la boleta tiene ítems.
+                foreach ($items as $item) {
+                    // Busca el pagaré asociado al ítem.    
+                    $pagareItem = $this->repository->findOrFail($item['code']);
+           
+                    // Actualiza la cotización, el estado y la fecha de pago a confirmar del pagaré asociado al ítem.
+                    $this->repository->update($pagareItem, ['cotizacion' => $cotizacion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today()]);
 
-                   $pagareComision = $this->repository->create([
-                       'descripcion' => 'Comisión POGA (%5.5)',
-                       'enum_clasificacion_pagare' => 'COMISION_POGA',
-                       'enum_estado' => 'PENDIENTE',
-                       'fecha_pagare' => Carbon::now(),
-                       'fecha_vencimiento' => Carbon::now()->addYear(),
-                       'id_inmueble' => $pagare->id_inmueble,
-                       'id_moneda' => '1',
-                       'id_persona_acreedora' => $adminUser->id_persona,
-                       'id_persona_deudora' => $pagare->id_persona_acreedora,
-                       'id_tabla' => $pagare->id,
-                       'monto' => $pagare->monto * 5.5 / 100
-                   ])[1];
-               }
+                    // Para cada ítem crea un pagaré de comisión.
+                    $this->repository->create(
+                        [
+                        'descripcion' => 'Comisión POGA (%5.5)',
+                        'enum_clasificacion_pagare' => 'COMISION_POGA',
+                        'enum_estado' => 'PENDIENTE',
+                        'fecha_pagare' => Carbon::now(),
+                        'fecha_vencimiento' => Carbon::now()->addYear(),
+                        'id_inmueble' => $pagareItem->id_inmueble,
+                        'id_moneda' => $pagareItem->id_moneda,
+                        'id_persona_acreedora' => $adminUser->id_persona,
+                        'id_persona_deudora' => $pagareItem->id_persona_acreedora,
+                        'id_tabla' => $pagareItem->id,
+                        'monto' => $pagareItem->monto * 5.5 / 100
+                        ]
+                    );
+                }
             } else {
-                $pagare = $this->repository->findOrFail($docModel['docId']);
-
-                $pagareComision = $this->repository->create([
+                // Si la boleta no tiene ítems crea solo un pagaré de comisión.
+                $this->repository->create(
+                    [
                     'descripcion' => 'Comisión POGA (%5.5)',
                     'enum_clasificacion_pagare' => 'COMISION_POGA',
                     'enum_estado' => 'PENDIENTE',
                     'fecha_pagare' => Carbon::now(),
                     'fecha_vencimiento' => Carbon::now()->addYear(),
-                    'id_inmueble' => $pagare->id_inmueble,
-                    'id_moneda' => '1',
+                    'id_inmueble' => $pagareBoleta->id_inmueble,
+                    'id_moneda' => $pagareBoleta->id_moneda,
                     'id_persona_acreedora' => $adminUser->id_persona,
-                    'id_persona_deudora' => $pagare->id_persona_acreedora,
-                    'id_tabla' => $pagare->id,
-                    'monto' => $pagare->monto * 5.5 / 100
-                ])[1]; 
+                    'id_persona_deudora' => $pagareBoleta->id_persona_acreedora,
+                    'id_tabla' => $pagareBoleta->id,
+                    'monto' => $pagareBoleta->monto * 5.5 / 100
+                                ]
+                );
             }
 
-            $pagare->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($pagare, $docModel));
-            $pagare->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($pagare, $docModel));
+            // Actualiza la cotización, el estado y la fecha de pago a confirmar del pagaré asociado a la boleta.
+            $this->repository->update($pagareBoleta, ['cotizacion' => $cotizacion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today()]);
 
-            $admin = User::where('email', env('MAIL_ADMIN_ADDRESS'))->firstOrFail();
-	    $admin->notify(new PagoConfirmadoParaAdminPoga($pagare, $docModel));
-
-        } elseif ($payStatus === 'pending')  {
-            if ($pagare->enum_estado !== 'PENDIENTE') {    
-                $this->repository->update($pagare, ['revertido' => '1']);
-	    
+            // Dispara notificaciones al acreedor, deudor y al admin de Poga.
+            $pagareBoleta->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($pagareBoleta, $docModel));
+            $pagareBoleta->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($pagareBoleta, $docModel));
+            $adminUser->notify(new PagoConfirmadoParaAdminPoga($pagareBoleta, $docModel));
+            break;
+        case 'pending':
+            // Si el estado del pagare no es PENDIENTE se trata de una reversión.
+            if ($pagareBoleta->enum_estado !== 'PENDIENTE') {    
+                $this->repository->update($pagareBoleta, ['enum_estado' => 'PENDIENTE', 'revertido' => '1']);
+        
                 if ($items) {
                     foreach ($items as $item) {
-                        $this->repository->update($item['code'], ['revertido' => '1']);
+                        $this->repository->update($item['code'], ['enum_estado' => 'PENDIENTE', 'revertido' => '1']);
                     }
                 }
-	    }
-
-            $estado = 'PENDIENTE';
-        } else {
-            $estado = 'PENDIENTE';
-        }
-
-
-        $this->dispatchNow(new ActualizarEstadoPagare($pagare, $estado));
-        if ($items) {
-            foreach ($items as $item) {
-                $pagare = $this->repository->update($item['code'], ['fecha_pago_a_confirmar' => Carbon::today()])[1];
-                $this->dispatchNow(new ActualizarEstadoPagare($pagare, $estado));
             }
-	}
-
-        return response()->json('Success');
+            break;
+        }
     }
 }

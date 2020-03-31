@@ -24,6 +24,7 @@ class Pagare extends Model
      * @var array
      */
     protected $fillable = [     
+        'cotizacion',
         'descripcion',
         'enum_clasificacion_pagare',    
         'enum_estado',
