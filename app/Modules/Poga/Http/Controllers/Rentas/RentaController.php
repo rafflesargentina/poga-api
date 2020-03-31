@@ -104,9 +104,9 @@ class RentaController extends Controller
             )
             ],        
             'id_moneda' => 'required|numeric',
-            'monto' => 'numeric',
+            'monto' => 'required',
             'monto_descontado_garantia_finalizacion_contrato' => 'numeric',
-            'monto_multa_dia' => 'required_if:multa,1|numeric',
+            'monto_multa_dia' => 'required_if:multa,1',
             'multa'=> 'required|boolean',
             'prim_comision_administrador' => 'required|numeric',
             ]
