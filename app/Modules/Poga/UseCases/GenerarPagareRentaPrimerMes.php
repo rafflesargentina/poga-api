@@ -86,7 +86,7 @@ class GenerarPagareRentaPrimerMes
             'label' => $summary,
             'code' => $pagare->id,
             'amount' => [
-                'currency' => 'PYG',
+                'currency' => $renta->id_moneda == 1 ? 'PYG' : 'USD',
                 'value' => $pagare->monto,
             ]
             ]
@@ -103,7 +103,7 @@ class GenerarPagareRentaPrimerMes
                         'label' => 'Depósito de garantía',
                         'code' => $pagareDepositoGarantia->id,
                         'amount' => [
-                            'currency' => 'PYG',
+                            'currency' => $renta->id_moneda == 1 ? 'PYG' : 'USD',
                             'value' => $pagareDepositoGarantia->monto,
                         ]
                     ]
@@ -122,11 +122,12 @@ class GenerarPagareRentaPrimerMes
                     'label' => 'Comisión inmobiliaria',
                     'code' => $pagareComisionInmobiliaria->id,
                     'amount' => [
-                        'currency' => 'PYG',
+                        'currency' => $renta->id_moneda == 1 ? 'PYG' : 'USD',
                         'value' => $pagareComisionInmobiliaria->monto,
                     ]
                     ]
                 );
+
 
                 $monto = intval(round($monto + $pagareComisionInmobiliaria->monto, 2, PHP_ROUND_HALF_UP));
             }
@@ -134,7 +135,7 @@ class GenerarPagareRentaPrimerMes
 
         $datosBoleta = [
             'amount' => [
-                'currency' => 'PYG',
+                'currency' => $renta->id_moneda == 1 ? 'PYG' : 'USD',
                 'value' => $monto,
             ],
             'description' => [

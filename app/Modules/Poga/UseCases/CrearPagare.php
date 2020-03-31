@@ -74,7 +74,7 @@ class CrearPagare
         $summary = $label.'. Observación: '.$pagare->descripcion;
         $datosBoleta = [
             'amount' => [
-                'currency' => 'PYG',
+                'currency' => $pagare->id_moneda == 1 ? 'PYG' : 'USD',
                 'value' => $pagare->monto,
             ],
             'description' => [

@@ -61,7 +61,7 @@ class GenerarComisionPrimerMesAdministrador
 
                    $datosBoleta = [
                        'amount' => [
-                    'currency' => 'PYG',
+                    'currency' => $renta->id_moneda == 1 ? 'PYG' : 'USD',
                     'value' => $renta->monto
                        ],
                        'description' => [

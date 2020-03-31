@@ -52,6 +52,8 @@ class GenerarBoletaPago
             $url = env('DEBTS_URL').'/debts';
 	}
 
+	\Log::info(array_merge($this->data, ['uiTheme' => ['name' => 'poga']]));
+
         $response = $this->client->post(
             $url, [
             'json' => [

@@ -81,7 +81,7 @@ class GenerarPagares implements ShouldQueue
                         'label' => $label,
                         'code' => $pagare->id,
                         'amount' => [
-                            'currency' => 'PYG',
+                            'currency' => $pagare->id_moneda == 1 ? 'PYG' : 'USD',
                             'value' => $pagare->monto,
                         ]
                     ]
@@ -89,7 +89,7 @@ class GenerarPagares implements ShouldQueue
         
                 $datosBoleta = [
                     'amount' => [
-                        'currency' => 'PYG',
+                        'currency' => $pagare->id_moneda == 1 ? 'PYG' : 'USD',
                         'value' => $pagare->monto,
                     ],
                     'description' => [
