@@ -37,14 +37,14 @@ class GenerarPagares implements ShouldQueue
         $endOfMonth = $now->copy()->endOfMonth();
         $startOfMonth = $now->copy()->startOfMonth();
 
-        if ($renta->created_at->format('Y-m') !== $now->format('Y-m')) {
-            $fechaCreacionPagare = $now;
-	    $fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1);
+        if ($renta->created_at->format('Y-m') < $now->format('Y-m')) {
+            $fechaCreacionPagare = $now->startOfDay();
+	    $fechaVencimiento = $startOfMonth->copy()->addDays($renta->dia_mes_pago + $renta->dias_multa - 1)->endOyDay();
 
 	    // Para casos de testing o ejecuciones tardías.
 	    if (env('APP_ENV') === 'local') {
 	        if ($fechaVencimiento < $now) {
-                    $fechaVencimiento = $now->copy()->addDay();
+                    $fechaVencimiento = $now->copy()->addDay()->endOfDay;
 		}
 	    }
 
