@@ -25,6 +25,7 @@ Route::apiResource('roles', Auth\RolController::class, ['only' => ['index']]);
 // Cuenta
 Route::post('cuenta', 'Cuenta\ActualizarCuentaController');
 Route::post('completa-tu-registro', 'Cuenta\CompletarRegistroController');
+Route::put('actualiza-tu-celular', 'Cuenta\ActualizarTelefonoCelularController');
 
 // Base97
 Route::post('pagos/notificacion', Base97\NotificacionPagoController::class);
