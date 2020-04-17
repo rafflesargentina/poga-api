@@ -51,25 +51,28 @@ class UsuarioRegistrado extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-        switch ($notifiable->role_id) {
-        case 4:
-            $action = str_replace('.api', '', url('/inmuebles/crear'));
-            $line2 = 'Completá tu registro antes de publicar tu primer inmueble.';
+        switch ($this->user->role_id) {
+	case 4:
+	    $btnText = 'Ya podés publicar tu inmueble';
+            $btnUrl = str_replace('api.', '', url('/inmuebles/crear'));
+            $line = 'Bienvenido y gracias por registrate en POGA.';
         break;
-        case 3:
-            $action = str_replace('.api', '', url('/cuenta'));
-            $line2 = 'Accedé a tu portal:';
+	case 3:
+            $btnText = 'Accede a tu cuenta';
+            $btnUrl = str_replace('api.', '', url('/cuenta'));
+            $line = 'Bienvenido y gracias por registrarte en POGA.';
         break;
-        default:
-            $action = str_replace('.api', '', url('/cuenta'));
-            $line2 = '';
+	default:
+	    $btnText = 'Accede a tu cuenta';
+            $btnUrl = str_replace('api.', '', url('/cuenta'));
+            $line = '';
 	}
 
         return (new MailMessage)
             ->subject('Gracias por registrarte en POGA')
             ->greeting('Hola '.$this->user->idPersona->nombre)
-            ->line($line2)
-            ->action('Completa tu registro ahora', str_replace('.api', '', url('/completa-tu-registro')));
+            ->line($line)
+            ->action($btnText, $btnUrl);
     }
 
     /**
