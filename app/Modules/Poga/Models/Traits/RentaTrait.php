@@ -2,6 +2,8 @@
 
 namespace Raffles\Modules\Poga\Models\Traits;
 
+use Carbon\Carbon;
+
 trait RentaTrait
 {
     /**
@@ -44,5 +46,15 @@ trait RentaTrait
     public function getPersonaIdInquilinoReferenteAttribute()
     {
         return $this->id_inquilino;
+    }
+
+    public function setFechaFinAttribute($value)
+    {
+        $this->attributes['fecha_fin'] = Carbon::parse($value);
+    }
+
+    public function setFechaInicioAttribute($value)
+    {
+        $this->attributes['fecha_inicio'] = Carbon::parse($value);
     }
 }
