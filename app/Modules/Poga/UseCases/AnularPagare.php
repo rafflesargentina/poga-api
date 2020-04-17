@@ -55,7 +55,7 @@ class AnularPagare
 
             switch ($pagare->enum_clasificacion_pagare) {
             case 'RENTA':
-                    $uc = new TraerBoletaPago($pagare->id);    
+                $uc = new TraerBoletaPago($pagare->id);    
                 $boleta = $uc->handle();
                 $items = $boleta['debt']['description']['items'];
 
@@ -70,6 +70,7 @@ class AnularPagare
                     $pagare = $this->dispatchNow(new ActualizarEstadoPagare($pagare, 'ANULADO'));
                 break;
             }
+
         } elseif ($pagare->idRenta->enum_estado === 'ACTIVO') {
             switch ($pagare->enum_clasificacion_pagare) {
             case 'RENTA':
@@ -87,7 +88,7 @@ class AnularPagare
 
                 // Arroja el key del item del array.
                 $multaExistente = array_search('Multa por atraso', array_column($items, 'label'));
-                if ($multaExistente) {
+                if (!is_null($multaExistente)) {
                     $amountCurrency = $boleta['debt']['amount']['currency'];
                     $amountValue = $boleta['debt']['amount']['value'];
                         $summary = $boleta['debt']['description']['summary'];
@@ -118,6 +119,17 @@ class AnularPagare
                         ]
                     ];
 
+                    $pagare = $this->dispatchNow(new ActualizarEstadoPagare($pagare, 'ANULADO'));
+                break;
+                case 'PAGO_DIFERIDO':
+                    $data = [
+                        'debt' => [
+                            'objStatus' => [
+                                'status' => 'inactive',
+                            ]
+                        ]
+                    ];
+    
                     $pagare = $this->dispatchNow(new ActualizarEstadoPagare($pagare, 'ANULADO'));
                 break;
             }

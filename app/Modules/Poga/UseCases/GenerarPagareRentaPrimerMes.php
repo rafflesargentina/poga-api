@@ -46,8 +46,8 @@ class GenerarPagareRentaPrimerMes
         $startOfMonth = $now->copy()->startOfMonth();
 
         $fechaInicio = $renta->fecha_inicio;
-        $fechaCreacionPagare = $now;
-        $fechaVencimiento = $fechaInicio->copy()->addDays(10);
+        $fechaCreacionPagare = $now->copy()->startOfDay(); // Debe mantenerse instancia de Carbon.
+        $fechaVencimiento = $fechaCreacionPagare->copy()->addDays(10)->endOfDay(); // Debe mantenerse instancia de Carbon.
 
         $primerDiaPeriodo = $startOfMonth->copy()->addDays($renta->dia_mes_pago)->subDay();
         $ultimoDiaPeriodo = $primerDiaPeriodo->copy()->addMonth()->subDay();
@@ -64,7 +64,7 @@ class GenerarPagareRentaPrimerMes
             'id_persona_deudora' => $renta->id_inquilino,
             'monto' => $monto,
             'id_moneda' => $renta->id_moneda,
-            'fecha_pagare' => $fechaCreacionPagare,
+            'fecha_pagare' => $fechaCreacionPagare->toDateString(),
             'fecha_vencimiento' => $fechaVencimiento->toDateString(),
             'enum_estado' => 'PENDIENTE',
             'enum_clasificacion_pagare' => 'RENTA',

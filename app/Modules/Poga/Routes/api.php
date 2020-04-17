@@ -47,6 +47,8 @@ Route::put('finanzas/rechazarPago', Finanzas\RechazarPagoController::class);
 Route::put('finanzas/transferirPago/{id}', Finanzas\TransferirPagareController::class);
 Route::put('finanzas/distribuirExpensas', Finanzas\DistribuirExpensasController::class);
 Route::put('finanzas/rentas/anular-pago/{id}', Finanzas\AnularPagareController::class);
+Route::put('finanzas/activar-ley-emergencia/{id}', Finanzas\ActivarLeyEmergenciaController::class);
+Route::put('finanzas/actualizarMontoPago/{id}', Finanzas\ActualizarMontoPagoController::class);
 Route::apiResource('bancos', Finanzas\BancoController::class, ['only' => ['index']]);
 Route::apiResource('monedas', Finanzas\MonedaController::class, ['only' => ['index','show']]);
 Route::apiResource('pagares', Finanzas\PagareController::class);

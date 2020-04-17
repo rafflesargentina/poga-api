@@ -84,7 +84,7 @@ class PagareRepository extends EloquentRepository
         $one->setModel($builder->getModel());
         $one->with('idInmueble', 'idMoneda', 'idPagarePadre', 'idRenta', 'idUnidad');
 	$one->select('*', \DB::raw('DATE_FORMAT(fecha_pagare, "%m/%Y") as mes, SUM(monto) as total'));
-	$one->whereIn('enum_clasificacion_pagare', ['RENTA', 'COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA']);
+	$one->whereIn('enum_clasificacion_pagare', ['RENTA', 'COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA', 'PAGO_DIFERIDO']);
 	$one->whereIn('enum_estado', ['ANULADO', 'PAGADO', 'PENDIENTE']);
         $one->groupBy('enum_estado', 'id_inmueble', 'mes', 'id_tabla');
 

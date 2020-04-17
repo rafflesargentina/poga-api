@@ -135,7 +135,7 @@ class GenerarMultas implements ShouldQueue
 	$validPeriodStart = $data['debt']['validPeriod']['start'];
 
         $itemExistente = array_search($pagareMulta->id, array_column($boleta['debt']['description']['items'], 'code'));
-	if ($itemExistente) {
+	if (!is_null($itemExistente)) {
             $debt = ['debt' => Arr::only($data['debt'], ['amount', 'description', 'label', 'validPeriod'])];
             $debt['debt']['amount']['value'] = $montoRenta + $montoMulta;
             $debt['debt']['description']['items'][$itemExistente]['amount']['value'] = $montoMulta;

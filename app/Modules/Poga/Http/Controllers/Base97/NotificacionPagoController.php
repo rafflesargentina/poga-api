@@ -138,6 +138,12 @@ class NotificacionPagoController extends Controller
             // Actualiza la cotización, el estado y la fecha de pago a confirmar del pagaré asociado a la boleta.
             $pagareBoleta = $this->repository->update($pagareBoleta, ['cotizacion' => $cotizacion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today()])[1];
 
+            if ($pagareBoleta->enum_opcion_pago === 'MANUAL' ||  $pagareBoleta->enum_opcion_pago === 'MINIMO') {
+                $this->generarPagoProporcional($pagareBoleta);
+
+                $this->actualizarMontoPagare($pagareBoleta);
+            }
+
             // Dispara notificaciones al acreedor, deudor y al admin de Poga.
             $pagareBoleta->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($pagareBoleta, $docModel));
             $pagareBoleta->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($pagareBoleta, $docModel));
@@ -156,5 +162,58 @@ class NotificacionPagoController extends Controller
             }
             break;
         }
+    }
+
+    protected function generarPagoProporcional($pagare) {
+        $summary = 'Pago diferido #'.$pagare->id;
+
+        $pagarePagoProporcional = $this->repository->create([
+            'descripcion' => $summary,
+            'enum_clasificacion_pagare' => 'PAGO_DIFERIDO',
+            'enum_estado' => 'PENDIENTE',
+            'fecha_pagare' => Carbon::now()->startOfDay(),
+            'fecha_vencimiento' => Carbon::now()->addYear()->endOfDay(),
+            'id_inmueble' => $pagare->id_inmueble,
+            'id_moneda' => $pagare->id_moneda,
+            'id_persona_acreedora' => $pagare->id_persona_acreedora,
+            'id_persona_deudora' => $pagare->id_persona_deudora,
+            'id_tabla' => $pagare->id_tabla,
+            'monto' => ($pagare->monto - ($pagare->enum_opcion_pago === 'MANUAL' ? $pagare->monto_manual : $pagare->monto_minimo)),
+        ])[1];
+
+        $inmueble = $pagarePagoProporcional->idInmueble;
+        $inquilinoReferente = $inmueble->idInquilinoReferente->idPersona;
+        $targetLabel = $inquilinoReferente->nombre_y_apellidos;
+        $targetType = $inquilinoReferente->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
+        $targetNumber = $inquilinoReferente->enum_tipo_persona === 'FISICA' ? $inquilinoReferente->ci : $inquilinoReferente->ruc;
+        $label = 'Pago diferido para ('.$targetNumber.') '.$targetLabel.', mes '.Carbon::parse($pagare->fecha_pagare)->format('m/Y');
+
+        $datosBoleta = [
+            'amount' => [
+                'currency' => $pagarePagoProporcional->id_moneda == 1 ? 'PYG' : 'USD',
+                'value' => $pagarePagoProporcional->monto,
+            ],
+            'description' => [
+                'summary' => $summary,
+                'text' => $summary,
+            ],
+            'docId' => $pagarePagoProporcional->id,
+            'label' => $label,
+            'target' => [
+                'label' => $targetLabel,
+                'number' => $targetNumber,
+                'type' => $targetType,
+            ],
+            'validPeriod' => [
+                'end' => Carbon::parse($pagarePagoProporcional->fecha_vencimiento)->toAtomString(),
+                'start' => Carbon::parse($pagarePagoProporcional->fecha_pagare)->toAtomString()
+            ]
+        ];
+
+        $boleta = $this->dispatchNow(new GenerarBoletaPago($datosBoleta));
+    }
+
+    protected function actualizarMontoPagare($pagare) {
+        $this->repository->update($pagare, ['monto' => ($pagare->enum_opcion_pago === 'MANUAL' ? $pagare->monto_manual : $pagare->monto_minimo)]);
     }
 }
