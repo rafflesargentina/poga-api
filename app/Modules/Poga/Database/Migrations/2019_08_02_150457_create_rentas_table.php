@@ -25,14 +25,14 @@ class CreateRentasTable extends Migration
                 $table->boolean('expensas')->nullable()->default(0);
                 $table->boolean('vigente')->nullable()->default(0);
                 $table->tinyInteger('dias_multa')->nullable()->default(0);
-                $table->unsignedInteger('monto_multa_dia')->nullable()->default(0);
+                $table->decimal('monto_multa_dia',10,2)->nullable()->default(0);
                 $table->tinyInteger('dias_notificacion_previa_renovacion')->nullable()->default(60);
                 $table->enum('enum_estado', ['ACTIVO','INACTIVO','PENDIENTE','FINALIZADO','PENDIENTE_FINALIZACION']);
                 $table->unsignedInteger('id_moneda');
                 $table->foreign('id_moneda')->references('id')->on('monedas');
                 $table->unsignedInteger('id_inquilino');
                 $table->foreign('id_inquilino')->references('id')->on('personas');
-                $table->unsignedInteger('garantia')->nullable()->default(0);
+                $table->decimal('garantia',10,2)->nullable()->default(0);
                 $table->string('motivo_descuento_garantia')->nullable();
                 $table->unsignedInteger('dia_mes_pago');
                 $table->date('fecha_finalizacion_contrato')->nullable();            
