@@ -64,7 +64,7 @@ class RegisterController extends Controller
             'email' => 'required|email|unique:users,email',
             'id_persona.enum_tipo_persona' => 'sometimes|required',
             'id_persona.apellido' => 'required_if:id_persona.enum_tipo_persona,FISICA',
-            'id_persona.fecha_nacimiento' => 'required|date',
+            'id_persona.telefono_celular' => 'required|numeric',
             //'id_persona.id_pais' => 'sometimes|required_if:role_id,1',
             //'id_persona.id_pais_cobertura' => 'sometimes|required_if:role_id,1',
             'id_persona.nombre' => 'required',
