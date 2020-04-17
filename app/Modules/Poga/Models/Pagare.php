@@ -16,6 +16,7 @@ class Pagare extends Model
     protected $appends = [
         'clasificacion',
         'estado',
+        'monto_minimo'
     ];
 
     /**
@@ -27,7 +28,8 @@ class Pagare extends Model
         'cotizacion',
         'descripcion',
         'enum_clasificacion_pagare',    
-        'enum_estado',
+	'enum_estado',
+        'enum_opcion_pago',
         'id_distribucion_expensa',    
         'id_factura',    
         'id_inmueble',
@@ -41,9 +43,11 @@ class Pagare extends Model
         'fecha_pago_a_confirmar',
         'fecha_pago_confirmado',
         'fecha_pago_real',
+        'ley_emergencia',
         'mes_a_pagar',
-        'monto',
-        'nro_comprobante',
+	'monto',
+	'monto_manual',
+	'nro_comprobante',
         'pagado_fuera_sistema',
 	'pagado_con_fondos_de',
 	'revertido',
@@ -129,14 +133,5 @@ class Pagare extends Model
     public function idUnidad()
     {
         return $this->belongsTo(Unidad::class, 'id_inmueble', 'id_inmueble');
-    }
-
-    public function getMontoAttribute($value)
-    {
-        if ($this->enum_clasificacion_pagare === 'COMISION') {
-            return $value * -1;
-	}
-
-	return $value;
     }
 }

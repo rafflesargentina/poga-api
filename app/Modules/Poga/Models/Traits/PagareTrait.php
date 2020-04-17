@@ -36,6 +36,9 @@ trait PagareTrait
         case 'OTRO':
             $clasificacion = 'Solicitud de Pago';
         break;
+        case 'PAGO_DIFERIDO':
+            $clasificacion = 'Pago diferido';
+        break;
         case 'RENTA':
             $clasificacion = 'Renta';
         break;
@@ -75,5 +78,19 @@ trait PagareTrait
 	}
 
 	return $this->attributes['estado'] = $estado;
+    }
+
+    public function getMontoAttribute($value)
+    {
+        if ($this->enum_clasificacion_pagare === 'COMISION') {
+            return $value * -1;
+        }
+
+        return $value;
+    }
+
+    public function getMontoMinimoAttribute()
+    {
+        return $this->monto * env('PORC_PAGO_MINIMO') / 100;
     }
 }
