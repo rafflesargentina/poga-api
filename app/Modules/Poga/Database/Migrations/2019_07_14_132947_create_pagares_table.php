@@ -22,7 +22,7 @@ class CreatePagaresTable extends Migration
                 $table->foreign('id_persona_acreedora')->references('id')->on('personas')->nullable();
                 $table->unsignedInteger('id_persona_deudora')->nullable();
                 $table->foreign('id_persona_deudora')->references('id')->on('personas')->nullable();
-                $table->unsignedInteger('monto');
+                $table->decimal('monto',10,2);
                 $table->unsignedInteger('id_moneda');
                 $table->foreign('id_moneda')->references('id')->on('monedas');
                 $table->date('fecha_pagare');
