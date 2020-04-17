@@ -18,10 +18,10 @@ class AddExtraFieldsToUsersTable extends Migration
                 $table->unsignedInteger('id_persona')->nullable();
                 $table->unsignedInteger('role_id')->nullable();
                 $table->foreign('id_persona')->references('id')->on('personas');
-                $table->string('provider')->nullable()->afterColumn('password');
-                $table->string('provider_id')->nullable()->afterColumn('password');
-                $table->boolean('bloqueado')->default(0)->beforeColumn('created_at');
-                $table->string('codigo_validacion')->afterColumn('password');
+                $table->string('provider')->nullable()->after('password');
+                $table->string('provider_id')->nullable()->after('password');
+                $table->boolean('bloqueado')->default(0)->before('created_at');
+                $table->string('codigo_validacion')->after('password');
             }
         );
     }
