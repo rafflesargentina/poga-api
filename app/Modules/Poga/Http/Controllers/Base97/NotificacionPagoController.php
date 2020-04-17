@@ -80,7 +80,12 @@ class NotificacionPagoController extends Controller
 
             // Si el pagaré está en dólares.
 	    if ($pagareBoleta->id_moneda == 2) {
-                $cotizacion = $docModel['txList'][0]['exchangeRate']['value'];
+		try {
+                    $cotizacion = $docModel['txList'][0]['exchangeRate']['value'];
+		} catch (\Exception $e) {
+		    // En caso de que no pueda traer la cotización.
+                    $cotizacion = 0;
+		}	
             } else {
                 $cotizacion = 0;
             }
@@ -126,12 +131,12 @@ class NotificacionPagoController extends Controller
                     'id_persona_deudora' => $pagareBoleta->id_persona_acreedora,
                     'id_tabla' => $pagareBoleta->id,
                     'monto' => $pagareBoleta->monto * 5.5 / 100
-                                ]
+                    ]
                 );
             }
 
             // Actualiza la cotización, el estado y la fecha de pago a confirmar del pagaré asociado a la boleta.
-            $this->repository->update($pagareBoleta, ['cotizacion' => $cotizacion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today()]);
+            $pagareBoleta = $this->repository->update($pagareBoleta, ['cotizacion' => $cotizacion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today()])[1];
 
             // Dispara notificaciones al acreedor, deudor y al admin de Poga.
             $pagareBoleta->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($pagareBoleta, $docModel));

@@ -14,7 +14,7 @@ class AddCotizacionToPagaresTable extends Migration
     public function up()
     {
         Schema::table('pagares', function (Blueprint $table) {
-            $table->decimal('cotizacion',5,2)->nullable()->default(0)->after('monto');
+            $table->decimal('cotizacion',10,2)->nullable()->default(0)->after('monto');
 	});
     }
 
