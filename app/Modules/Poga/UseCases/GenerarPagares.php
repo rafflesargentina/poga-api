@@ -44,7 +44,7 @@ class GenerarPagares implements ShouldQueue
 	    // Para casos de testing o ejecuciones tardías.
 	    if (env('APP_ENV') === 'local') {
 	        if ($fechaVencimiento < $now) {
-                    $fechaVencimiento = $now->copy()->addDay()->endOfDay;
+                    $fechaVencimiento = $now->copy()->addDay()->endOfDay();
 		}
 	    }
 

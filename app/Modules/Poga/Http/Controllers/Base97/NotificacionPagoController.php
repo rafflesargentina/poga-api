@@ -6,7 +6,7 @@ use Raffles\Http\Controllers\Controller;
 use Raffles\Modules\Poga\Models\User;
 use Raffles\Modules\Poga\Notifications\{ PagoConfirmadoAcreedor, PagoConfirmadoDeudor, PagoConfirmadoParaAdminPoga };
 use Raffles\Modules\Poga\Repositories\PagareRepository;
-use Raffles\Modules\Poga\UseCases\{ ActualizarEstadoPagare, GenerarBoletaPago };
+use Raffles\Modules\Poga\UseCases\{ ActualizarBoletaPago, ActualizarEstadoPagare, GenerarBoletaPago };
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -138,8 +138,14 @@ class NotificacionPagoController extends Controller
             // Actualiza la cotización, el estado y la fecha de pago a confirmar del pagaré asociado a la boleta.
             $pagareBoleta = $this->repository->update($pagareBoleta, ['cotizacion' => $cotizacion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today()])[1];
 
+            // Válido entre el 1 de Abril y 30 de Junio.
             if ($pagareBoleta->enum_opcion_pago === 'MANUAL' ||  $pagareBoleta->enum_opcion_pago === 'MINIMO') {
-                $this->generarPagoProporcional($pagareBoleta);
+                $pagarePagoDiferido = $this->repository->where('id_tabla', $pagareBoleta->id_tabla)->where('enum_estado', 'PENDIENTE')->where('enum_clasificacion_pagare', 'PAGO_DIFERIDO')->first();
+                if (!$pagarePagoDiferido) {
+                    $this->generarPagoDiferido($pagareBoleta);
+                } else {
+                    $this->actualizarPagoDiferido($pagareBoleta, $pagarePagoDiferido);
+                }
 
                 $this->actualizarMontoPagare($pagareBoleta);
             }
@@ -164,15 +170,34 @@ class NotificacionPagoController extends Controller
         }
     }
 
-    protected function generarPagoProporcional($pagare) {
+    // Válido entre el 1 de Abril y 30 de Junio.
+    protected function actualizarPagoDiferido($pagareBoleta, $pagarePagoDiferido) {
+        $pagarePagoDiferido = $this->repository->update($pagarePagoDiferido, [
+            'monto' => $pagarePagoDiferido->monto + ($pagareBoleta->monto - ($pagareBoleta->enum_opcion_pago === 'MANUAL' ? $pagareBoleta->monto_manual : $pagareBoleta->monto_minimo)),
+        ])[1];
+
+        $datosBoleta = [
+            'debt' => [
+                'amount' => [
+                    'currency' => $pagarePagoDiferido->id_moneda == 1 ? 'PYG' : 'USD',
+                    'value' => $pagarePagoDiferido->monto,
+                ],
+            ]
+        ];
+
+        $boleta = $this->dispatchNow(new ActualizarBoletaPago($pagarePagoDiferido->id, $datosBoleta));
+    }
+
+    // Válido entre el 1 de Abril y 30 de Junio.
+    protected function generarPagoDiferido($pagare) {
         $summary = 'Pago diferido #'.$pagare->id;
 
-        $pagarePagoProporcional = $this->repository->create([
+        $pagarePagoDiferido = $this->repository->create([
             'descripcion' => $summary,
             'enum_clasificacion_pagare' => 'PAGO_DIFERIDO',
             'enum_estado' => 'PENDIENTE',
             'fecha_pagare' => Carbon::now()->startOfDay(),
-            'fecha_vencimiento' => Carbon::now()->addYear()->endOfDay(),
+            'fecha_vencimiento' => Carbon::now()->endOfYear()->endOfDay(),
             'id_inmueble' => $pagare->id_inmueble,
             'id_moneda' => $pagare->id_moneda,
             'id_persona_acreedora' => $pagare->id_persona_acreedora,
@@ -181,7 +206,7 @@ class NotificacionPagoController extends Controller
             'monto' => ($pagare->monto - ($pagare->enum_opcion_pago === 'MANUAL' ? $pagare->monto_manual : $pagare->monto_minimo)),
         ])[1];
 
-        $inmueble = $pagarePagoProporcional->idInmueble;
+        $inmueble = $pagarePagoDiferido->idInmueble;
         $inquilinoReferente = $inmueble->idInquilinoReferente->idPersona;
         $targetLabel = $inquilinoReferente->nombre_y_apellidos;
         $targetType = $inquilinoReferente->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';
@@ -190,14 +215,14 @@ class NotificacionPagoController extends Controller
 
         $datosBoleta = [
             'amount' => [
-                'currency' => $pagarePagoProporcional->id_moneda == 1 ? 'PYG' : 'USD',
-                'value' => $pagarePagoProporcional->monto,
+                'currency' => $pagarePagoDiferido->id_moneda == 1 ? 'PYG' : 'USD',
+                'value' => $pagarePagoDiferido->monto,
             ],
             'description' => [
                 'summary' => $summary,
                 'text' => $summary,
             ],
-            'docId' => $pagarePagoProporcional->id,
+            'docId' => $pagarePagoDiferido->id,
             'label' => $label,
             'target' => [
                 'label' => $targetLabel,
@@ -205,8 +230,8 @@ class NotificacionPagoController extends Controller
                 'type' => $targetType,
             ],
             'validPeriod' => [
-                'end' => Carbon::parse($pagarePagoProporcional->fecha_vencimiento)->toAtomString(),
-                'start' => Carbon::parse($pagarePagoProporcional->fecha_pagare)->toAtomString()
+                'end' => Carbon::parse($pagarePagoDiferido->fecha_vencimiento)->toAtomString(),
+                'start' => Carbon::parse($pagarePagoDiferido->fecha_pagare)->toAtomString()
             ]
         ];
 
