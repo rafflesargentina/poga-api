@@ -19,6 +19,7 @@ class Unidad extends Model
      * @var array
      */
     protected $appends = [
+        'direccion',
         'persona_id_administrador_referente',
         'persona_id_inquilino_referente',
         'persona_id_propietario_referente',
