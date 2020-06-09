@@ -13,6 +13,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Log;
 
 class GenerarMultas implements ShouldQueue
 {
@@ -27,6 +28,8 @@ class GenerarMultas implements ShouldQueue
      */
     public function handle(RentaRepository $repository, PagareRepository $rPagare)
     {
+        Log::info('Comienzo de ejecución de "GenerarMultas".');
+
         $rentasActivasConMulta = $repository->activasConMulta();
 
 	$now = Carbon::now();
@@ -78,38 +81,48 @@ class GenerarMultas implements ShouldQueue
                     ]
 	        )[1];
 
-                $uc = new TraerBoletaPago($pagareVencido->id);
-                $boleta = $uc->handle();
+                try {
+                    $uc = new TraerBoletaPago($pagareVencido->id);
+                    $boleta = $uc->handle();
 
-                $this->actualizarBoletaPago($boleta, $pagareMulta);
+                    $this->actualizarBoletaPago($boleta, $pagareMulta);
 
-                // Notifica solamente la primer vez que genera pagare de multa.
-                $pagareVencido->idPersonaAcreedora->user->notify(new PagareRentaVencidoAcreedor($pagareVencido));
-                $pagareVencido->idPersonaDeudora->user->notify(new PagareRentaVencidoDeudor($pagareVencido));
+                    // Notifica solamente la primer vez que genera pagare de multa.
+                    $pagareVencido->idPersonaAcreedora->user->notify(new PagareRentaVencidoAcreedor($pagareVencido));
+                    $pagareVencido->idPersonaDeudora->user->notify(new PagareRentaVencidoDeudor($pagareVencido));
 
-                $admin = User::where('email', env('EMAIL_ADMIN_ADDRESS'))->first();
-                if ($admin) {
-                    $admin->notify(new PagareRentaVencidoParaAdminPoga($pagareVencido));
-                }
+                    $admin = User::where('email', env('EMAIL_ADMIN_ADDRESS'))->first();
+                    if ($admin) {
+                        $admin->notify(new PagareRentaVencidoParaAdminPoga($pagareVencido));
+                    }
+                } catch (\Exception $e) {
+                    //
+                } 
 	    } else {
                 if ($pagareMulta->enum_estado === 'PENDIENTE') {
 		    $diasAtraso = $fechaVencimiento->diffInDays($pagareVencido->fecha_vencimiento);
 		    $monto = $renta->monto_multa_dia * $diasAtraso;
-        
+       
                     $pagareMulta->update(
                         [
 			    'fecha_vencimiento' => $fechaVencimiento->toDateString(),    
                             'monto' => $monto, 
                         ]
 		    );
-		
-                    $uc = new TraerBoletaPago($pagareVencido->id);
-                    $boleta = $uc->handle();
+	
+                    try {	
+                        $uc = new TraerBoletaPago($pagareVencido->id);
+                        $boleta = $uc->handle();
 
-                    $this->actualizarBoletaPago($boleta, $pagareMulta);
+                        $this->actualizarBoletaPago($boleta, $pagareMulta);
+                    } catch (\Exception $exception) {
+                        //
+                    }
 		}	
             }
         }
+
+        Log::info('Fin de ejecución de "GenerarMultas".');
     }
 
     /**
@@ -135,7 +148,7 @@ class GenerarMultas implements ShouldQueue
 	$validPeriodStart = $data['debt']['validPeriod']['start'];
 
         $itemExistente = array_search($pagareMulta->id, array_column($boleta['debt']['description']['items'], 'code'));
-	if (!is_null($itemExistente)) {
+	if (false !== $itemExistente) {
             $debt = ['debt' => Arr::only($data['debt'], ['amount', 'description', 'label', 'validPeriod'])];
             $debt['debt']['amount']['value'] = $montoRenta + $montoMulta;
             $debt['debt']['description']['items'][$itemExistente]['amount']['value'] = $montoMulta;
