@@ -71,7 +71,7 @@ class AnularPagare
                 break;
             }
 
-        } elseif ($pagare->idRenta->enum_estado === 'ACTIVO') {
+        } elseif ($pagare->idRenta->enum_estado === 'ACTIVO'||$pagare->idRenta->enum_estado === 'RENOVADO') {
             switch ($pagare->enum_clasificacion_pagare) {
             case 'RENTA':
                 $data = [
@@ -140,20 +140,29 @@ class AnularPagare
 
         $boleta = $this->dispatchNow(new ActualizarBoletaPago($pagare->id, $data));
 
-        $personaAcreedora = $pagare->idPersonaAcreedora;
-        if ($personaAcreedora) {
-            $usuarioAcreedor = $personaAcreedora->user;
-            if ($usuarioAcreedor) {
-                $usuarioAcreedor->notify(new PagoAnulado($pagare));
+        try {
+            $personaAcreedora = $pagare->idPersonaAcreedora;
+            if ($personaAcreedora) {
+                $usuarioAcreedor = $personaAcreedora->user;
+                if ($usuarioAcreedor) {
+                    $usuarioAcreedor->notify(new PagoAnulado($pagare));
+                }
             }
+        } catch (\Exception $e) {
+
         }
 
-        $personaDeudora = $pagare->idPersonaDeudora;
-        if ($personaDeudora) {
-            $usuarioDeudor = $personaDeudora->user;
-            if ($usuarioDeudor) {
-                $usuarioDeudor->notify(new PagoAnulado($pagare));
+
+        try {
+            $personaDeudora = $pagare->idPersonaDeudora;
+            if ($personaDeudora) {
+                $usuarioDeudor = $personaDeudora->user;
+                if ($usuarioDeudor) {
+                    $usuarioDeudor->notify(new PagoAnulado($pagare));
+                }
             }
+        } catch (\Exception $e) {
+
         }
 
         return ['pagare' => $pagare, 'boleta' => $boleta];
