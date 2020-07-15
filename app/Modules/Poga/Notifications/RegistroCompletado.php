@@ -53,15 +53,15 @@ class RegistroCompletado extends Notification implements ShouldQueue
     {
         switch ($notifiable->role_id) {
 	case 4:	
-	    $action = str_replace('.api', '', url('/inmuebles/crear'));
+	    $action = str_replace('.api', 'app.', url('/inmuebles/crear'));
 	    $line2 = 'Ya podés comenzar a crear contratos de renta para tus inmuebles.';
 	break;
 	case 3:
-	    $action = str_replace('.api', '', url('/cuenta'));
+	    $action = str_replace('.api', 'app.', url('/cuenta'));
 	    $line2 = 'Accedé a tu portal:';
         break;
 	default:
-	    $action = str_replace('.api', '', url('/cuenta'));
+	    $action = str_replace('.api', 'app.', url('/cuenta'));
 	    $line2 = '';
 	}
 

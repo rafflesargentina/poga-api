@@ -9,11 +9,11 @@ Los pagos confirmados por el contrato del inmueble "{{ $pagare->idUnidad ? $paga
 @component('mail::table')
 | Concepto               | Valor         |
 | -----------------------|---------------|
-| Inquilino              | {{ $pagare->idPersonaDeudora->nombre_y_apellidos }} |
-| {{ str_replace('_', ' ', ucwords(strtolower($pagare->idPagarePadre->enum_clasificacion_pagare))) }} | {{ number_format($pagare->idPagarePadre->monto,0,',','.') }} {{ $pagare->idMoneda->abbr }} |
-| Nº Operación Bancaria  | {{ $pagare->idPagarePadre->nro_comprobante }} |
-| Servicio Poga          | {{ number_format(($pagare->monto * -1),0,',','.') }} {{ $pagare->idMoneda->abbr }} |
-| Transferido neto       | {{ number_format($pagare->idPagarePadre->monto - $pagare->monto,0,',','.') }} {{ $pagare->idMoneda->abbr }} |
+| Inquilino              | {{ $pagare->idPagarePadre->idPersonaDeudora->nombre_y_apellidos }} |
+| {{ str_replace('_', ' ', ucwords(strtolower($pagare->idPagarePadre->enum_clasificacion_pagare))) }} | {{ number_format($pagare->idPagarePadre->monto,2,',','.') }} {{ $pagare->idMoneda->abbr }} |
+| Nº de cuenta remitente | {{ $pagare->idPagarePadre->nro_comprobante }} |
+| Servicio Poga          | {{ number_format(($pagare->monto * -1),2,',','.') }} {{ $pagare->idMoneda->abbr }} |
+| Transferido neto       | {{ number_format($pagare->idPagarePadre->monto - $pagare->monto,2,',','.') }} {{ $pagare->idMoneda->abbr }} |
 @endcomponent
 
 La acreditación a su cuenta bancaria podría llevar de 48 a 72 horas hábiles de acuerdo proceso bancario.

@@ -3,6 +3,7 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use GuzzleHttp\Client;
+use Log;
 
 class GenerarBoletaPago
 {
@@ -52,7 +53,12 @@ class GenerarBoletaPago
             $url = env('DEBTS_URL').'/debts';
 	}
 
-	\Log::info(array_merge($this->data, ['uiTheme' => ['name' => 'poga']]));
+        try {
+            Log::info('Generación de boleta:');
+	    Log::info(array_merge($this->data, ['uiTheme' => ['name' => 'poga']]));
+        } catch (\Exception $e) {
+            //
+        }
 
         $response = $this->client->post(
             $url, [

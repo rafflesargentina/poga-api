@@ -64,8 +64,17 @@ class CrearPagare
 	$inmueble = $pagare->idInmueble;
 	$inquilinoReferente = $inmueble->idInquilinoReferente->idPersona;
 
-        $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare));
-        $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare));
+        try {
+            $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare));
+        } catch (\Exception $e) {
+
+        }
+
+        try {
+            $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare));
+        } catch(\Exception $e) {
+
+        }
 
         $targetLabel = $inquilinoReferente->nombre_y_apellidos;
         $targetType = $inquilinoReferente->enum_tipo_persona === 'FISICA' ? 'cip' : 'ruc';

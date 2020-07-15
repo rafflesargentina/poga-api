@@ -48,7 +48,7 @@ class PagareController extends Controller
 	        $items = $this->repository->misPagos($request);
 	    break;
 	    default:
-	        $items = $this->repository->findPagares($request->idInmueblePadre, $request->user());
+	        $items = $this->repository->filter()->sort()->get();
 	}
 
         return $this->validSuccessJsonResponse('Success', $items);

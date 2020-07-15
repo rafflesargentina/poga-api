@@ -8,6 +8,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Log;
 
 use Raffles\Modules\Poga\Repositories\RentaRepository;
 use Raffles\Modules\Poga\Models\{ Inmueble, Renta, Pagare };
@@ -65,7 +66,11 @@ class GenerarPagares implements ShouldQueue
                     'monto' => $renta->monto,
                 ]);
 
-                \Log::info('GenerarPagares: Pagare creado id '.$pagare->id);
+                try {
+                    Log::info('GenerarPagares: Pagare creado id '.$pagare->id);
+                } catch (\Exception $e) {
+                    //
+                }
 
                 $inquilino = $renta->idInquilino;
 
@@ -113,8 +118,13 @@ class GenerarPagares implements ShouldQueue
                 $uc = new GenerarBoletaPago($datosBoleta);
                 $boleta = $uc->handle();
 
-                $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare, $boleta));
-                $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare, $boleta));
+                // No cortar el proceso en caso de errores en las notificaciones.
+                try {
+                    $pagare->idPersonaAcreedora->user->notify(new PagareCreadoPersonaAcreedora($pagare, $boleta));
+                    $pagare->idPersonaDeudora->user->notify(new PagareCreadoPersonaDeudora($pagare, $boleta));
+                } catch (\Exception $exception) {
+
+                }
             }
         }
     }

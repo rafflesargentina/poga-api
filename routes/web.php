@@ -12,3 +12,7 @@
 */
 
 Auth::routes();
+
+Route::get('/prueba', function(Request $request) {
+\Log::error('Error de preuba desde el servidor.');
+});

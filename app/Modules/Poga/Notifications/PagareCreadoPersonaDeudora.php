@@ -44,7 +44,7 @@ class PagareCreadoPersonaDeudora extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['mail', SmsApiChannel::class];
+        return [SmsApiChannel::class, 'mail'];
     }
 
     /**
@@ -98,7 +98,7 @@ class PagareCreadoPersonaDeudora extends Notification implements ShouldQueue
 		->line($line5);
 
 	} catch (\Exception $e) {
-
+//
         }
     }
 

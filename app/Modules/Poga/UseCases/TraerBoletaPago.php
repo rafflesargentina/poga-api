@@ -3,6 +3,9 @@
 namespace Raffles\Modules\Poga\UseCases;
 
 use GuzzleHttp\Client;
+use Exception;
+
+class BoletaNoEncontrada extends Exception {}
 
 class TraerBoletaPago
 {
@@ -59,7 +62,7 @@ class TraerBoletaPago
 	} catch (\GuzzleHttp\Exception\ClientException $e) {
 	    switch ($e->getCode()) {
                 case 404:
-	            abort(404);
+	            throw new BoletaNoEncontrada('La boleta con docId '.$this->id.' se encuentra anulada o no pudo ser encontrada.');
             }
 	}
 

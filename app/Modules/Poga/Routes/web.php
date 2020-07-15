@@ -20,7 +20,7 @@ use Illuminate\Http\Request;
 |
  */
 
-if (App::environment(['local', 'staging'])) {
+//if (App::environment(['local', 'staging'])) {
     Route::get('/mailing/inmueble-creado/{id}', function(Request $request) {
         $inmueble = Inmueble::find($request->id);
 
@@ -397,4 +397,4 @@ if (App::environment(['local', 'staging'])) {
 
         return $markdown->render('vendor.notifications.email', $message->toArray());
     });
-}
+//}

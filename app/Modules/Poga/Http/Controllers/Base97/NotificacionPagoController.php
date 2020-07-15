@@ -48,8 +48,12 @@ class NotificacionPagoController extends Controller
         $jsonModel =  base64_decode(str_replace(['-','_'], ['+','/'], $b64UrlModel));
         $docModel = json_decode($jsonModel, true);
 
-        Log::info('Nueva notificación de pago:');
-        Log::info($docModel);
+        try {
+            Log::info('Notificación de pago:');
+            Log::info($docModel);
+        } catch (\Exception $e) {
+            //
+        }
 
         // Buscamos el pagare asociado a la boleta.
         $pagareBoleta = $this->repository->find($docModel['docId']);
@@ -151,9 +155,18 @@ class NotificacionPagoController extends Controller
             }
 
             // Dispara notificaciones al acreedor, deudor y al admin de Poga.
-            $pagareBoleta->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($pagareBoleta, $docModel));
-            $pagareBoleta->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($pagareBoleta, $docModel));
-            $adminUser->notify(new PagoConfirmadoParaAdminPoga($pagareBoleta, $docModel));
+            try {
+                $pagareBoleta->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($pagareBoleta, $docModel));
+            } catch (\Exception $e) {
+                $pagareBoleta->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($pagareBoleta, $docModel));
+            }
+
+            try {
+                $adminUser->notify(new PagoConfirmadoParaAdminPoga($pagareBoleta, $docModel));
+            } catch(\Exception $e) {
+
+            }
+
             break;
         case 'pending':
             // Si el estado del pagare no es PENDIENTE se trata de una reversión.

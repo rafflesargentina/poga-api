@@ -2,12 +2,13 @@
 
 namespace Raffles\Modules\Poga\UseCases;
 
-use Raffles\Modules\Poga\Models\Pagare;
-use Raffles\Modules\Poga\Notifications\EstadoPagareActualizado;
+use Raffles\Modules\Poga\Models\{ Pagare, User };
+use Raffles\Modules\Poga\Mail\{ PagoTransferidoAcreedor, PagoTransferidoParaAdminPoga };
 use Raffles\Modules\Poga\Repositories\PagareRepository;
 
 use Carbon\Carbon;
 use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Support\Facades\Mail;
 
 class TransferirPagare
 {
@@ -55,9 +56,14 @@ class TransferirPagare
 	if ($personaAcreedora) {
 	    $usuarioAcreedor = $personaAcreedora->user;
 	    if ($usuarioAcreedor) {
-	        $usuarioAcreedor->notify(new EstadoPagareActualizado($pagare));
+                Mail::to($usuarioAcreedor->email)->send(new PagoTransferidoAcreedor($pagareHijo, $usuarioAcreedor));
 	    }
 	}
+
+        $adminPoga = User::where('email', env('MAIL_ADMIN_ADDRESS'))->first();
+        if ($adminPoga) {
+            Mail::to($adminPoga->email)->send(new PagoTransferidoParaAdminPoga($pagareHijo, $adminPoga));
+        }
 
         return $pagare;
     }   
