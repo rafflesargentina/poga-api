@@ -23,7 +23,7 @@ class PagareRepository extends EloquentRepository
 
     public function baseLogic(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user('api');
 
         return $this->filter()->sort()->whereHas(
             'idInmueble', function ($query) use ($user) {
@@ -67,6 +67,14 @@ class PagareRepository extends EloquentRepository
 		}
 	    });
      }
+
+    public function boletasRenta(Request $request)
+    {
+        $user = $request->user('api');
+        $persona = $user->idPersona;
+
+        return $this->whereIn('enum_clasificacion_pagare', ['COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA', 'RENTA'])->where('id_persona_acreedora', $persona->id)->where('enum_estado', 'PENDIENTE')->get();
+    }
 
     /**
      * Mis Pagos.
