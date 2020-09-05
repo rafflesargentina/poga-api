@@ -93,8 +93,9 @@ class RegistrarPagoManual
             $p = $rPagare->update($pagare, ['descripcion' => $descripcion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
         }
 
+
         // Pagare del tipo RENTA.
-        if ($pagare->enum_clasificacion === 'RENTA') {
+        if ($pagare->enum_clasificacion_pagare === 'RENTA') {
             $items = $rPagare->where('descripcion', $descripcion)->whereIn('enum_clasificacion_pagare', ['COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA', 'RENTA'])->where('enum_estado', 'PENDIENTE')->where('id_tabla', $pagare->id_tabla)->where('fecha_pagare', DB::raw('DATE_FORMAT(fecha_pagare, "%Y-%m")'))->get();
 
             foreach($items as $item) {
@@ -108,17 +109,19 @@ class RegistrarPagoManual
             $p = $rPagare->update($pagare, ['descripcion' => $descripcion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
         }
 
-        if (!$pfs) {
-            $this->generarPagareComision($p);
+        if ($p) {
+            if (!$pfs) {
+                $this->generarPagareComision($p);
+            }
+    
+            $uc = new AnularBoletaPago($p->id);
+            $uc->handle();
+
+            $p->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($p, $boleta['debt']));
+            $p->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($p, $boleta['debt']));
+
+            $this->adminUser->notify(new PagoConfirmadoParaAdminPoga($p, $boleta['debt']));
         }
-
-        $uc = new AnularBoletaPago($p->id);
-        $uc->handle();
-
-        $p->idPersonaAcreedora->user->notify(new PagoConfirmadoAcreedor($p, $boleta['debt']));
-        $p->idPersonaDeudora->user->notify(new PagoConfirmadoDeudor($p, $boleta['debt']));
-
-        $this->adminUser->notify(new PagoConfirmadoParaAdminPoga($p, $boleta['debt']));
     }
 
     protected function getAdminUser()
