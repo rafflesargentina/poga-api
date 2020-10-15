@@ -90,7 +90,7 @@ class RegistrarPagoManual
 
         // Pagare del tipo OTRO o PAGO_DIFERIDO.
         if (in_array($pagare->enum_clasificacion_pagare, ['OTRO', 'PAGO_DIFERIDO'])) {
-            $p = $rPagare->update($pagare, ['descripcion' => $descripcion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
+            $p = $rPagare->update($pagare, ['descripcion' => $descripcion, 'enum_estado' => ($pfs ? 'TRANSFERIDO' : 'PAGADO'), 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
         }
 
         // Pagare del tipo RENTA.
@@ -98,19 +98,15 @@ class RegistrarPagoManual
             $items = $rPagare->where('descripcion', $descripcion)->whereIn('enum_clasificacion_pagare', ['COMISION_INMOBILIARIA', 'DEPOSITO_GARANTIA', 'MULTA_RENTA', 'RENTA'])->where('enum_estado', 'PENDIENTE')->where('id_tabla', $pagare->id_tabla)->where('fecha_pagare', DB::raw('DATE_FORMAT(fecha_pagare, "%Y-%m")'))->get();
 
             foreach($items as $item) {
-                $i = $rPagare->update($item, ['descripcion' => $descripcion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
+                $i = $rPagare->update($item, ['descripcion' => $descripcion, 'enum_estado' => ($pfs ? 'TRANSFERIDO' : 'PAGADO'), 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
 
-                if (!$pfs) {
-                    $this->generarPagareComision($i);
-                }
+                $this->generarPagareComision($i);
             }
 
-            $p = $rPagare->update($pagare, ['descripcion' => $descripcion, 'enum_estado' => 'PAGADO', 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
+            $p = $rPagare->update($pagare, ['descripcion' => $descripcion, 'enum_estado' => ($pfs ? 'TRANSFERIDO' : 'PAGADO'), 'fecha_pago_a_confirmar' => Carbon::today(), 'pagado_fuera_sistema' => $pfs])[1];
         }
 
-        if (!$pfs) {
-            $this->generarPagareComision($p);
-        }
+        $this->generarPagareComision($p);
 
         $uc = new AnularBoletaPago($p->id);
         $uc->handle();
